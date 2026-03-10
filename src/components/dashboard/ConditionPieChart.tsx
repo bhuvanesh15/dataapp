@@ -85,7 +85,11 @@ export function ConditionPieChart() {
               </Pie>
               <Tooltip
                 content={(props) => (
-                  <SalesByConditionTooltip {...props} totalSold={totalSold} />
+                  <SalesByConditionTooltip
+                    active={props.active}
+                    payload={props.payload as Array<{ name?: unknown; value?: number; color?: string }> | undefined}
+                    totalSold={totalSold}
+                  />
                 )}
               />
             </PieChart>
