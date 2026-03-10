@@ -118,22 +118,22 @@ export function ConditionPieChart() {
   );
 }
 
-function SalesByConditionTooltip(
-  props: {
-    active?: boolean;
-    payload?: Array<{ name: string; value: number; color: string }>;
-    totalSold: number;
-  }
-) {
+function SalesByConditionTooltip(props: {
+  active?: boolean;
+  payload?: Array<{ name?: unknown; value?: number; color?: string }>;
+  totalSold: number;
+}) {
   const { active, payload, totalSold } = props;
   if (!active || !payload?.length || totalSold <= 0) return null;
   const item = payload[0];
-  const pct = ((item.value / totalSold) * 100).toFixed(1);
+  const value = Number(item?.value ?? 0);
+  const name = item?.name != null ? String(item.name) : "";
+  const pct = ((value / totalSold) * 100).toFixed(1);
   return (
     <div className="rounded-lg border bg-background px-3 py-2 shadow-sm">
-      <p className="font-medium text-foreground">{item.name}</p>
+      <p className="font-medium text-foreground">{name}</p>
       <p className="text-sm text-muted-foreground">
-        {formatNumber(item.value)} units ({pct}%)
+        {formatNumber(value)} units ({pct}%)
       </p>
     </div>
   );
