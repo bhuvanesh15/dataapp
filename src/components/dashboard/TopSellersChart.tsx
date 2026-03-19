@@ -40,11 +40,19 @@ export function TopSellersChart() {
       <CardContent>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 80, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis type="number" />
-            <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} />
-            <Tooltip />
-            <Bar dataKey="count" fill="#E53238" radius={[0, 4, 4, 0]} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+            <XAxis type="number" tick={{ fill: "#64748b", fontSize: 11 }} />
+            <YAxis type="category" dataKey="name" width={80} tick={{ fill: "#94a3b8", fontSize: 11 }} />
+            <Tooltip
+              contentStyle={{
+                background: "rgba(0,0,0,0.8)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "12px",
+                backdropFilter: "blur(12px)",
+                color: "#f1f5f9",
+              }}
+            />
+            <Bar dataKey="count" fill="#22d3ee" radius={[0, 8, 8, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

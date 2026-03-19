@@ -13,14 +13,33 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <KPICards />
-      <div className="grid gap-4 md:grid-cols-2">
-        {showEbay && <MarketplaceChart />}
-        {showEbay && <TopSellersChart />}
-        {showEbay && <ConditionPieChart />}
-        <ScrapeTimeline />
+      <p className="text-gradient-subtle text-sm font-medium tracking-wide md:text-base">
+        Real-time product intelligence across Amazon &amp; eBay
+      </p>
+      <div className="opacity-0 animate-fade-in-up">
+        <KPICards />
       </div>
-      <div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {showEbay && (
+          <div className="opacity-0 animate-fade-in-up-delay-1">
+            <MarketplaceChart />
+          </div>
+        )}
+        {showEbay && (
+          <div className="opacity-0 animate-fade-in-up-delay-2">
+            <TopSellersChart />
+          </div>
+        )}
+        {showEbay && (
+          <div className="opacity-0 animate-fade-in-up-delay-3">
+            <ConditionPieChart />
+          </div>
+        )}
+        <div className="opacity-0 animate-fade-in-up-delay-4">
+          <ScrapeTimeline />
+        </div>
+      </div>
+      <div className="opacity-0 animate-fade-in-up-delay-5">
         <RecentProductsTable />
       </div>
     </div>

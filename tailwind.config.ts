@@ -51,6 +51,25 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      keyframes: {
+        "fade-in-up": {
+          from: { opacity: "0", transform: "translateY(12px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "pulse-glow": {
+          "0%, 100%": { boxShadow: "0 0 20px rgba(34, 211, 238, 0.4)" },
+          "50%": { boxShadow: "0 0 28px rgba(34, 211, 238, 0.35)" },
+        },
+      },
+      animation: {
+        "fade-in-up": "fade-in-up 0.5s ease-out forwards",
+        "fade-in-up-delay-1": "fade-in-up 0.5s ease-out 0.08s forwards",
+        "fade-in-up-delay-2": "fade-in-up 0.5s ease-out 0.12s forwards",
+        "fade-in-up-delay-3": "fade-in-up 0.5s ease-out 0.16s forwards",
+        "fade-in-up-delay-4": "fade-in-up 0.5s ease-out 0.2s forwards",
+        "fade-in-up-delay-5": "fade-in-up 0.5s ease-out 0.24s forwards",
+        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],

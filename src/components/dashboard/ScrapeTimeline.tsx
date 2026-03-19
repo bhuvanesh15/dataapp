@@ -60,11 +60,19 @@ export function ScrapeTimeline() {
       <CardContent>
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="week" tick={{ fontSize: 10 }} />
-            <YAxis />
-            <Tooltip />
-            <Legend />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+            <XAxis dataKey="week" tick={{ fill: "#64748b", fontSize: 10 }} />
+            <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+            <Tooltip
+              contentStyle={{
+                background: "rgba(0,0,0,0.8)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "12px",
+                backdropFilter: "blur(12px)",
+                color: "#f1f5f9",
+              }}
+            />
+            <Legend wrapperStyle={{ color: "#94a3b8" }} />
             <Line type="monotone" dataKey="amazon" stroke="#FF9900" name="Amazon" strokeWidth={2} />
             <Line type="monotone" dataKey="ebay" stroke="#E53238" name="eBay" strokeWidth={2} />
           </LineChart>

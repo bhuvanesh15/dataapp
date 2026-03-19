@@ -52,36 +52,36 @@ export function KPICards() {
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <Card>
+      <Card className="card-accent-cyan">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <span className="text-sm font-medium text-muted-foreground">Total Products Tracked</span>
+          <span className="text-sm font-medium uppercase tracking-wide text-slate-400">Total Products Tracked</span>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatNumber(totalProducts)}</div>
+          <div className="text-3xl font-bold tabular-nums text-gradient">{formatNumber(totalProducts)}</div>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="card-accent-indigo">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <span className="text-sm font-medium text-muted-foreground">Total Sellers Tracked</span>
+          <span className="text-sm font-medium uppercase tracking-wide text-slate-400">Total Sellers Tracked</span>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatNumber(uniqueSellers)}</div>
+          <div className="text-3xl font-bold tabular-nums text-white">{formatNumber(uniqueSellers)}</div>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="card-accent-purple">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <span className="text-sm font-medium text-muted-foreground">Average Price (USD)</span>
+          <span className="text-sm font-medium uppercase tracking-wide text-slate-400">Average Price (USD)</span>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatPrice(avgPrice)}</div>
+          <div className="text-3xl font-bold tabular-nums text-cyan-400">{formatPrice(avgPrice)}</div>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="card-accent-emerald">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <span className="text-sm font-medium text-muted-foreground">Total Items Sold (eBay)</span>
+          <span className="text-sm font-medium uppercase tracking-wide text-slate-400">Total Items Sold (eBay)</span>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatNumber(totalItemsSold)}</div>
+          <div className="text-3xl font-bold tabular-nums text-emerald-400">{formatNumber(totalItemsSold)}</div>
         </CardContent>
       </Card>
     </div>

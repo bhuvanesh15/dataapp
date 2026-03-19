@@ -48,10 +48,10 @@ export function ConditionPieChart() {
       <Card>
         <CardHeader>
           <CardTitle>Sales by Condition (units sold)</CardTitle>
-          <p className="text-sm text-muted-foreground">eBay items sold by product condition.</p>
+          <p className="text-sm text-slate-400">eBay items sold by product condition.</p>
         </CardHeader>
         <CardContent>
-          <div className="flex h-[240px] items-center justify-center rounded-md border border-dashed border-muted text-muted-foreground">
+          <div className="flex h-[240px] items-center justify-center rounded-xl border border-dashed border-white/10 text-slate-500">
             No sales data
           </div>
         </CardContent>
@@ -63,7 +63,7 @@ export function ConditionPieChart() {
     <Card className="min-h-0">
       <CardHeader className="pb-2">
         <CardTitle>Sales by Condition (units sold)</CardTitle>
-        <p className="text-sm text-muted-foreground">eBay items sold by product condition.</p>
+        <p className="text-sm text-slate-400">eBay items sold by product condition.</p>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="relative h-[220px] shrink-0">
@@ -95,14 +95,14 @@ export function ConditionPieChart() {
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-            <span className="text-xs font-medium text-muted-foreground">Total sold</span>
-            <span className="text-xl font-bold text-foreground tabular-nums">
+            <span className="text-xs font-medium text-slate-400">Total sold</span>
+            <span className="text-xl font-bold tabular-nums text-white">
               {formatNumber(totalSold)}
             </span>
           </div>
         </div>
         <div
-          className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground"
+          className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-xs text-slate-400"
           style={{ minHeight: 40 }}
         >
           {data.map((d, index) => (
@@ -134,9 +134,9 @@ function SalesByConditionTooltip(props: {
   const name = item?.name != null ? String(item.name) : "";
   const pct = ((value / totalSold) * 100).toFixed(1);
   return (
-    <div className="rounded-lg border bg-background px-3 py-2 shadow-sm">
-      <p className="font-medium text-foreground">{name}</p>
-      <p className="text-sm text-muted-foreground">
+    <div className="rounded-xl border border-white/10 bg-black/90 px-3 py-2 shadow-xl backdrop-blur-xl">
+      <p className="font-medium text-white">{name}</p>
+      <p className="text-sm text-slate-400">
         {formatNumber(value)} units ({pct}%)
       </p>
     </div>

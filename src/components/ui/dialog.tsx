@@ -55,7 +55,7 @@ function DialogContent({
   return (
     <>
       <div
-        className="fixed inset-0 z-50 bg-black/80"
+        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
         aria-hidden
         onClick={() => {
           onPointerDownOutside?.();
@@ -65,7 +65,7 @@ function DialogContent({
       <div
         role="dialog"
         className={cn(
-          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200",
+          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-2xl border border-white/10 bg-black/90 p-6 shadow-2xl backdrop-blur-xl duration-200",
           className
         )}
         onClick={(e) => e.stopPropagation()}
@@ -82,11 +82,11 @@ function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 }
 
 function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h2 className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props} />;
+  return <h2 className={cn("text-lg font-semibold leading-none tracking-tight text-white", className)} {...props} />;
 }
 
 function DialogDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-sm text-muted-foreground", className)} {...props} />;
+  return <p className={cn("text-sm text-slate-400", className)} {...props} />;
 }
 
 function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

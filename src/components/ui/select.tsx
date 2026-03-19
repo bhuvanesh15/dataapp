@@ -47,7 +47,7 @@ const SelectTrigger = React.forwardRef<
       role="combobox"
       aria-expanded={ctx.open}
       className={cn(
-        "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+        "flex h-10 w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-400/30 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 transition-all duration-200",
         className
       )}
       onClick={() => ctx.setOpen(!ctx.open)}
@@ -88,7 +88,7 @@ const SelectContent = React.forwardRef<
         else if (ref) ref.current = r;
       }}
       className={cn(
-        "absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
+        "absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-white/10 bg-black/90 p-1 text-white shadow-xl backdrop-blur-xl",
         className
       )}
       {...props}
@@ -112,13 +112,13 @@ const SelectItem = ({
       role="option"
       aria-selected={ctx.value === value}
       className={cn(
-        "relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "relative flex w-full cursor-pointer select-none items-center rounded-lg py-1.5 pl-8 pr-2 text-sm text-slate-200 outline-none hover:bg-white/10 hover:text-white focus:bg-white/10 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className
       )}
       onClick={() => ctx.onValueChange(value)}
       {...props}
     >
-      {ctx.value === value && <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">✓</span>}
+      {ctx.value === value && <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center text-cyan-400">✓</span>}
       {children}
     </div>
   );

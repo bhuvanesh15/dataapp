@@ -55,13 +55,13 @@ function SheetContent({
   return (
     <>
       <div
-        className="fixed inset-0 z-50 bg-black/80"
+        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
         aria-hidden
         onClick={() => ctx.setOpen(false)}
       />
       <div
         className={cn(
-          "fixed z-50 flex h-full w-full max-w-sm flex-col gap-2 border bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+          "fixed z-50 flex h-full w-full max-w-sm flex-col gap-2 border border-white/10 bg-black/90 p-6 shadow-2xl backdrop-blur-xl transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
           side === "right" ? "inset-y-0 right-0 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right" : "inset-y-0 left-0 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
           className
         )}
@@ -79,7 +79,7 @@ function SheetHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
 }
 
 function SheetTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h2 className={cn("text-lg font-semibold text-foreground", className)} {...props} />;
+  return <h2 className={cn("text-lg font-semibold text-white", className)} {...props} />;
 }
 
 function SheetClose({

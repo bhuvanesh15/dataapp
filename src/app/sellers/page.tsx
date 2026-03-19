@@ -124,7 +124,7 @@ export default function SellersPage() {
         </Select>
       </div>
       {sellers.length === 0 ? (
-        <div className="rounded-lg border border-dashed py-12 text-center text-muted-foreground">
+        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] py-12 text-center text-slate-400">
           No sellers found. Load or upload data to see sellers.
         </div>
       ) : (

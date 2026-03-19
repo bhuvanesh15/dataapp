@@ -31,7 +31,7 @@ export function SellerCard({ data }: { data: SellerCardData }) {
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h3 className="font-semibold leading-tight">{data.name}</h3>
+            <h3 className="font-semibold leading-tight text-white">{data.name}</h3>
             <Badge
               variant={data.marketplace === "ebay" ? "ebay" : "amazon"}
               className="mt-1"
@@ -43,20 +43,20 @@ export function SellerCard({ data }: { data: SellerCardData }) {
             href={data.sellerUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground"
+            className="text-slate-400 hover:text-white"
           >
             <ExternalLink className="h-4 w-4" />
           </a>
         </div>
         {data.businessName && (
-          <p className="mt-1 text-sm text-muted-foreground">{data.businessName}</p>
+          <p className="mt-1 text-sm text-slate-400">{data.businessName}</p>
         )}
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
         {data.locationOrAddress && (
-          <p className="text-muted-foreground">{data.locationOrAddress}</p>
+          <p className="text-slate-400">{data.locationOrAddress}</p>
         )}
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-300">
           <span>Items sold: {formatNumber(data.totalItemsSold)}</span>
           {data.reviewCount > 0 && (
             <span>Reviews: {formatNumber(data.reviewCount)}</span>
@@ -72,7 +72,7 @@ export function SellerCard({ data }: { data: SellerCardData }) {
         <Link
           href={data.productsLink}
           className={cn(
-            "mt-2 inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+            "mt-2 inline-flex h-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 text-sm font-medium text-slate-200 shadow-sm transition-all hover:bg-white/10 hover:text-white"
           )}
         >
           <Package className="mr-2 h-4 w-4" />

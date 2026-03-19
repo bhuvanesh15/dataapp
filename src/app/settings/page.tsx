@@ -23,7 +23,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Theme</CardTitle>
-          <p className="text-sm text-muted-foreground">Choose light, dark, or system.</p>
+          <p className="text-sm text-slate-400">Choose light, dark, or system.</p>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
@@ -44,7 +44,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Table</CardTitle>
-          <p className="text-sm text-muted-foreground">Default rows per page in product tables.</p>
+          <p className="text-sm text-slate-400">Default rows per page in product tables.</p>
         </CardHeader>
         <CardContent>
           <Select value={String(rowsPerPage)} onValueChange={(v) => setRowsPerPage(Number(v))}>
@@ -64,7 +64,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Marketplace visibility</CardTitle>
-          <p className="text-sm text-muted-foreground">Show or hide eBay and Amazon in the sidebar and dashboard.</p>
+          <p className="text-sm text-slate-400">Show or hide eBay and Amazon in the sidebar and dashboard.</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
@@ -98,7 +98,7 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>About</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-1 text-sm text-muted-foreground">
+        <CardContent className="space-y-1 text-sm text-slate-400">
           <p>Product Intelligent Dashboard v1.0.0</p>
           <p>Last updated: March 2026</p>
         </CardContent>

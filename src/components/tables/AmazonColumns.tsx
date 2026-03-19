@@ -24,7 +24,7 @@ export function getAmazonColumns(): ColumnDef<AmazonProduct, unknown>[] {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-primary hover:underline"
+            className="inline-flex items-center gap-1 text-cyan-400 hover:underline"
           >
             {truncate(name, 50)}
             <ExternalLink className="h-3 w-3 shrink-0" />
@@ -53,7 +53,7 @@ export function getAmazonColumns(): ColumnDef<AmazonProduct, unknown>[] {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-primary hover:underline"
+            className="inline-flex items-center gap-1 text-cyan-400 hover:underline"
           >
             {name || "N/A"}
             <ExternalLink className="h-3 w-3 shrink-0" />
@@ -67,7 +67,7 @@ export function getAmazonColumns(): ColumnDef<AmazonProduct, unknown>[] {
       header: "Price",
       cell: ({ getValue }) => {
         const v = getValue();
-        if (v == null || v === "") return <span className="text-muted-foreground">N/A</span>;
+        if (v == null || v === "") return <span className="text-slate-500">N/A</span>;
         return formatPrice(v as number);
       },
       enableSorting: true,
@@ -91,7 +91,7 @@ export function getAmazonColumns(): ColumnDef<AmazonProduct, unknown>[] {
       header: "Ratings",
       cell: ({ getValue }) => {
         const v = getValue();
-        if (v == null || v === "") return <span className="text-muted-foreground">N/A</span>;
+        if (v == null || v === "") return <span className="text-slate-500">N/A</span>;
         return formatNumber(v as number);
       },
       enableSorting: true,
@@ -101,7 +101,7 @@ export function getAmazonColumns(): ColumnDef<AmazonProduct, unknown>[] {
       header: "Rating",
       cell: ({ getValue }) => {
         const v = getValue();
-        if (v == null || v === "") return <span className="text-muted-foreground">N/A</span>;
+        if (v == null || v === "") return <span className="text-slate-500">N/A</span>;
         return String(v);
       },
       enableSorting: true,
@@ -120,14 +120,14 @@ export function getAmazonColumns(): ColumnDef<AmazonProduct, unknown>[] {
     {
       accessorKey: "Business Name",
       header: "Business Name",
-      cell: ({ getValue }) => getValue() || <span className="text-muted-foreground">N/A</span>,
+      cell: ({ getValue }) => getValue() || <span className="text-slate-500">N/A</span>,
     },
     {
       accessorKey: "Date Scraped",
       header: "Date Scraped",
       cell: ({ getValue }) => {
         const v = getValue() as string;
-        if (!v) return <span className="text-muted-foreground">N/A</span>;
+        if (!v) return <span className="text-slate-500">N/A</span>;
         return v;
       },
       enableSorting: true,
@@ -137,7 +137,7 @@ export function getAmazonColumns(): ColumnDef<AmazonProduct, unknown>[] {
       header: "Week Scraped",
       cell: ({ getValue }) => {
         const v = getValue() as string;
-        if (!v) return <span className="text-muted-foreground">N/A</span>;
+        if (!v) return <span className="text-slate-500">N/A</span>;
         return v;
       },
       enableSorting: true,
@@ -149,7 +149,7 @@ export function getAmazonColumns(): ColumnDef<AmazonProduct, unknown>[] {
     {
       accessorKey: "Item model number",
       header: "Model #",
-      cell: ({ getValue }) => getValue() || <span className="text-muted-foreground">N/A</span>,
+      cell: ({ getValue }) => getValue() || <span className="text-slate-500">N/A</span>,
     },
   ];
 }
@@ -160,14 +160,14 @@ export function AmazonDetailCard({ row }: { row: AmazonProduct }) {
     <div className="grid gap-2 text-sm sm:grid-cols-2">
       {entries.map(([key, value]) => (
         <div key={key} className="flex flex-col">
-          <span className="font-medium text-muted-foreground">{key}</span>
+          <span className="font-medium text-slate-500">{key}</span>
           <span className="break-all">
             {key === "Seller URL" || key === "product url" ? (
               <a
                 href={String(value)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline"
+                className="text-cyan-400 hover:underline"
               >
                 {String(value)}
                 <ExternalLink className="ml-1 inline h-3 w-3" />

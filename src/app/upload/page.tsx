@@ -87,19 +87,19 @@ export default function UploadPage() {
       <Card>
         <CardHeader>
           <CardTitle>Upload CSV</CardTitle>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-slate-400">
             Upload a CSV file to merge with existing data. Format is auto-detected from column headers.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <DropZone onFileSelect={handleFileSelect} />
           {parseError && (
-            <p className="text-sm text-destructive">{parseError}</p>
+            <p className="text-sm text-rose-400">{parseError}</p>
           )}
           {detectedFormat && (
             <>
-              <p className="text-sm text-muted-foreground">
-                Detected format: <strong>{detectedFormat === "ebay" ? "eBay" : "Amazon"}</strong>
+              <p className="text-sm text-slate-400">
+                Detected format: <strong className="text-white">{detectedFormat === "ebay" ? "eBay" : "Amazon"}</strong>
               </p>
               <p className="text-sm">First 5 rows:</p>
               <PreviewTable rows={parsedRows} maxRows={5} />
@@ -112,7 +112,7 @@ export default function UploadPage() {
       <Card>
         <CardHeader>
           <CardTitle>Clear All Data</CardTitle>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-slate-400">
             Remove all loaded and imported data from the dashboard. This does not delete your CSV files.
           </p>
         </CardHeader>
@@ -127,13 +127,13 @@ export default function UploadPage() {
         <CardHeader>
           <CardTitle>Expected CSV Format</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 text-sm text-muted-foreground">
+        <CardContent className="space-y-4 text-sm text-slate-400">
           <div>
-            <strong className="text-foreground">eBay:</strong> Columns such as Search Term, Total result for the search,
+            <strong className="text-white">eBay:</strong> Columns such as Search Term, Total result for the search,
             Product Name, Price (USD), Condition of Product, Seller Name, Date Scraped, Week Scraped, etc.
           </div>
           <div>
-            <strong className="text-foreground">Amazon:</strong> Columns such as Seller, Seller URL, Business Name,
+            <strong className="text-white">Amazon:</strong> Columns such as Seller, Seller URL, Business Name,
             Product Name, ASIN, Best Sellers Rank, product url, Date Scraped, Week Scraped, etc.
           </div>
         </CardContent>
@@ -143,7 +143,7 @@ export default function UploadPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Clear all data?</DialogTitle>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-400">
               This will remove all products and sellers from the dashboard. You can reload data from CSV files or upload again.
             </p>
           </DialogHeader>

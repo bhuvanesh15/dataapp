@@ -77,7 +77,7 @@ export function RecentProductsTable() {
           <CardTitle>Recent Products</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">No products yet. Upload CSV data to see recent products.</p>
+          <p className="text-sm text-slate-400">No products yet. Upload CSV data to see recent products.</p>
         </CardContent>
       </Card>
     );
@@ -87,7 +87,7 @@ export function RecentProductsTable() {
     <Card>
       <CardHeader>
         <CardTitle>Recent Products</CardTitle>
-        <p className="text-sm text-muted-foreground">Last 10 added across marketplaces</p>
+        <p className="text-sm text-slate-400">Last 10 added across marketplaces</p>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">

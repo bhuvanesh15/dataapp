@@ -24,7 +24,7 @@ export function ToastSimple({
   return (
     <div
       className={cn(
-        "fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-lg border bg-card px-4 py-2 text-sm shadow-lg",
+        "fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-white/10 bg-black/90 px-4 py-2 text-sm text-white shadow-xl backdrop-blur-xl",
         className
       )}
       role="alert"

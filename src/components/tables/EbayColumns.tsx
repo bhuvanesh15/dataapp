@@ -13,10 +13,10 @@ function ReviewPercentCell({ value }: { value: number }) {
     p >= 98 ? "default" : p >= 95 ? "secondary" : "destructive";
   const colorClass =
     p >= 98
-      ? "text-green-600 dark:text-green-400"
+      ? "text-emerald-400"
       : p >= 95
-        ? "text-yellow-600 dark:text-yellow-400"
-        : "text-red-600 dark:text-red-400";
+        ? "text-amber-400"
+        : "text-rose-400";
   return <span className={cn("font-medium", colorClass)}>{formatPercent(p)}</span>;
 }
 
@@ -33,7 +33,7 @@ export function getEbayColumns(): ColumnDef<EbayProduct, unknown>[] {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-primary hover:underline"
+            className="inline-flex items-center gap-1 text-cyan-400 hover:underline"
           >
             {truncate(name, 50)}
             <ExternalLink className="h-3 w-3 shrink-0" />
@@ -86,7 +86,7 @@ export function getEbayColumns(): ColumnDef<EbayProduct, unknown>[] {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-primary hover:underline"
+            className="inline-flex items-center gap-1 text-cyan-400 hover:underline"
           >
             {name}
             <ExternalLink className="h-3 w-3 shrink-0" />
@@ -150,14 +150,14 @@ export function EbayDetailCard({ row }: { row: EbayProduct }) {
     <div className="grid gap-2 text-sm sm:grid-cols-2">
       {entries.map(([key, value]) => (
         <div key={key} className="flex flex-col">
-          <span className="font-medium text-muted-foreground">{key}</span>
+          <span className="font-medium text-slate-400">{key}</span>
           <span className="break-all">
             {key === "Product URL" || key === "Seller URL" ? (
               <a
                 href={String(value)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline"
+                className="text-cyan-400 hover:underline"
               >
                 {String(value)}
                 <ExternalLink className="ml-1 inline h-3 w-3" />

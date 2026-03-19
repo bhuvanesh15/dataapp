@@ -100,9 +100,9 @@ export function DataTable<T>({
 
   if (data.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
-        <p className="text-muted-foreground">No data to display.</p>
-        <p className="mt-1 text-sm text-muted-foreground">Upload a CSV or load data to get started.</p>
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 border-dashed bg-white/[0.03] py-12 text-center">
+        <p className="text-slate-400">No data to display.</p>
+        <p className="mt-1 text-sm text-slate-500">Upload a CSV or load data to get started.</p>
       </div>
     );
   }
@@ -110,7 +110,7 @@ export function DataTable<T>({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-slate-400">
           {table.getFilteredRowModel().rows.length} row(s)
         </div>
         <div className="flex items-center gap-2">
@@ -123,7 +123,7 @@ export function DataTable<T>({
         )}
         </div>
       </div>
-      <div className="overflow-x-auto rounded-md border">
+      <div className="scrollbar-glass overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -177,7 +177,7 @@ export function DataTable<T>({
                   </TableRow>
                   {renderSubComponent && isExpanded && (
                     <TableRow>
-                      <TableCell colSpan={row.getVisibleCells().length + 1} className="bg-muted/30 p-4">
+                      <TableCell colSpan={row.getVisibleCells().length + 1} className="bg-white/[0.04] p-4">
                         {renderSubComponent(row)}
                       </TableCell>
                     </TableRow>
@@ -190,7 +190,7 @@ export function DataTable<T>({
       </div>
       {table.getPageCount() > 1 && (
         <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-slate-400">
             Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
           </div>
           <div className="flex gap-2">

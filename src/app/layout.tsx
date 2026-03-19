@@ -23,12 +23,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${inter.className} scrollbar-glass relative min-h-screen`}>
         <ThemeProvider>
           <DataProvider>
             <SettingsProvider>
               <GlobalSearchProvider>
-                <div className="flex min-h-screen flex-col md:flex-row">
+                <div className="relative z-10 flex min-h-screen flex-col md:flex-row">
                   <Sidebar />
                   <div className="flex flex-1 flex-col min-w-0">
                     <LayoutContent>{children}</LayoutContent>

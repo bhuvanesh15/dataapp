@@ -56,7 +56,7 @@ function TooltipContent({
   return (
     <div
       className={cn(
-        "absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md",
+        "absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 rounded-xl border border-white/10 bg-black/90 px-3 py-1.5 text-sm text-white shadow-xl backdrop-blur-xl",
         className
       )}
       {...props}

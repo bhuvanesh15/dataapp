@@ -91,7 +91,7 @@ const DropdownMenuContent = React.forwardRef<
         else if (ref) ref.current = r;
       }}
       className={cn(
-        "absolute right-0 z-50 mt-2 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
+        "absolute right-0 z-50 mt-2 min-w-[8rem] overflow-hidden rounded-xl border border-white/10 bg-black/80 p-1 text-white shadow-xl backdrop-blur-xl",
         className
       )}
       {...props}
@@ -110,7 +110,7 @@ const DropdownMenuItem = React.forwardRef<
     ref={ref}
     role="menuitem"
     className={cn(
-      "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex cursor-pointer select-none items-center rounded-lg px-2 py-1.5 text-sm text-slate-200 outline-none hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50 transition-colors duration-200",
       className
     )}
     {...props}
@@ -128,7 +128,7 @@ const DropdownMenuCheckboxItem = ({
     role="menuitemcheckbox"
     aria-checked={checked}
     className={cn(
-      "relative flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex cursor-pointer select-none items-center rounded-lg py-1.5 pl-8 pr-2 text-sm text-slate-200 outline-none hover:bg-white/10 hover:text-white focus:bg-white/10 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
     {...props}

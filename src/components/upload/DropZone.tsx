@@ -47,8 +47,8 @@ export function DropZone({
   return (
     <label
       className={cn(
-        "flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors",
-        dragOver && "border-primary bg-primary/5",
+        "flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/20 bg-white/[0.03] p-8 transition-all duration-200",
+        dragOver && "border-cyan-400/50 bg-cyan-400/10",
         disabled && "cursor-not-allowed opacity-50",
         className
       )}
@@ -56,11 +56,11 @@ export function DropZone({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
     >
-      <Upload className="mb-2 h-10 w-10 text-muted-foreground" />
-      <span className="text-sm font-medium">
+      <Upload className="mb-2 h-10 w-10 text-slate-400" />
+      <span className="text-sm font-medium text-slate-200">
         Drag and drop a CSV file here, or click to browse
       </span>
-      <span className="mt-1 text-xs text-muted-foreground">Accepts .csv only</span>
+      <span className="mt-1 text-xs text-slate-500">Accepts .csv only</span>
       <input
         type="file"
         accept={accept}
