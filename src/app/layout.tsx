@@ -1,19 +1,17 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { DataProvider } from "@/context/DataContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { GlobalSearchProvider } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
 import { LayoutContent } from "@/components/layout/LayoutContent";
-
-const inter = Inter({ subsets: ["latin"] });
+import { SITE } from "@/lib/site-config";
 
 export const metadata: Metadata = {
-  title: "Product Intelligent Dashboard",
-  description: "Product intelligent dashboard for Amazon and eBay data",
+  title: SITE.documentTitle,
+  description: SITE.description,
 };
 
 export default function RootLayout({
@@ -22,15 +20,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} scrollbar-glass relative min-h-screen`}>
+    <html lang="en" className={GeistSans.variable} suppressHydrationWarning>
+      <body className={`${GeistSans.className} scrollbar-glass relative min-h-screen`}>
         <ThemeProvider>
           <DataProvider>
             <SettingsProvider>
               <GlobalSearchProvider>
                 <div className="relative z-10 flex min-h-screen flex-col md:flex-row">
                   <Sidebar />
-                  <div className="flex flex-1 flex-col min-w-0">
+                  <div className="flex min-w-0 flex-1 flex-col">
                     <LayoutContent>{children}</LayoutContent>
                   </div>
                 </div>

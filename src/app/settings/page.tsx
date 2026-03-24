@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useSettings } from "@/context/SettingsContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -13,6 +15,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { SITE } from "@/lib/site-config";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -23,7 +26,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Theme</CardTitle>
-          <p className="text-sm text-slate-400">Choose light, dark, or system.</p>
+          <p className="text-sm text-[#8da2b2]">Choose light, dark, or system.</p>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
@@ -43,8 +46,8 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Table</CardTitle>
-          <p className="text-sm text-slate-400">Default rows per page in product tables.</p>
+          <CardTitle>Table (legacy data)</CardTitle>
+          <p className="text-sm text-[#8da2b2]">Rows per page for Amazon/eBay product tables.</p>
         </CardHeader>
         <CardContent>
           <Select value={String(rowsPerPage)} onValueChange={(v) => setRowsPerPage(Number(v))}>
@@ -63,8 +66,8 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Marketplace visibility</CardTitle>
-          <p className="text-sm text-slate-400">Show or hide eBay and Amazon in the sidebar and dashboard.</p>
+          <CardTitle>Marketplace visibility (legacy)</CardTitle>
+          <p className="text-sm text-[#8da2b2]">Controls which legacy charts appear on the sample data dashboard.</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
@@ -92,14 +95,56 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Separator />
+      <Card>
+        <CardHeader>
+          <CardTitle>Legacy sample data</CardTitle>
+          <p className="text-sm text-[#8da2b2]">Phase 0 CSV workflow — kept for demos and uploads.</p>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Link
+            href="/legacy"
+            className={cn(buttonVariants({ variant: "outline" }), "rounded-xl border-[#2d3a4d] text-center")}
+          >
+            Sample charts dashboard
+          </Link>
+          <Link
+            href="/upload"
+            className={cn(buttonVariants({ variant: "outline" }), "rounded-xl border-[#2d3a4d] text-center")}
+          >
+            Upload Data
+          </Link>
+          <Link
+            href="/ebay"
+            className={cn(buttonVariants({ variant: "outline" }), "rounded-xl border-[#2d3a4d] text-center")}
+          >
+            eBay Products
+          </Link>
+          <Link
+            href="/amazon"
+            className={cn(buttonVariants({ variant: "outline" }), "rounded-xl border-[#2d3a4d] text-center")}
+          >
+            Amazon Products
+          </Link>
+          <Link
+            href="/sellers"
+            className={cn(buttonVariants({ variant: "outline" }), "rounded-xl border-[#2d3a4d] text-center")}
+          >
+            Sellers
+          </Link>
+        </CardContent>
+      </Card>
+
+      <Separator className="bg-[#2d3a4d]" />
 
       <Card>
         <CardHeader>
           <CardTitle>About</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-1 text-sm text-slate-400">
-          <p>Product Intelligent Dashboard v1.0.0</p>
+        <CardContent className="space-y-1 text-sm text-[#8da2b2]">
+          <p>
+            {SITE.brand} — {SITE.productTitle}
+          </p>
+          <p>Phase 1 shell (branding, hero KPIs, navigation, deploy target: intelligents.work/dashboard)</p>
           <p>Last updated: March 2026</p>
         </CardContent>
       </Card>
