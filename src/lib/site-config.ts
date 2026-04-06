@@ -11,9 +11,9 @@ export const SITE = {
   documentTitle: "Intelligents — Market Intelligence",
   description:
     "Dark-themed market intelligence dashboard — multi-platform pricing, seller discovery, velocity, and SKU drilldown.",
-  /** Dashboard hero line (Phase 1) */
+  /** Dashboard hero line (matches wireframe: below title in header) */
   dashboardSubtitle:
-    "Proprietary dataset across 13+ global platforms — luxury watches, sneakers, and fashion.",
+    "Real-time pricing, supplier intelligence, and market trends across 13+ data sources.",
 } as const;
 
 export type HeroKpiTrend = "positive" | "negative" | "neutral";
@@ -27,7 +27,7 @@ export type Phase1HeroKpi = {
   footnote: string;
 };
 
-/** Sample metrics from project brief (Phase 1 demo / sales pitch). */
+/** Fallback hero KPIs when CSVs are empty or a metric cannot be computed. Tariff row stays illustrative. */
 export const PHASE1_HERO_KPIS: Phase1HeroKpi[] = [
   {
     id: "cross-market-price-gap",

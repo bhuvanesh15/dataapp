@@ -1,10 +1,5 @@
-import { TabPlaceholder } from "@/components/phase1/TabPlaceholder";
+import { PriceBenchmarkView } from "@/components/phase1/PriceBenchmarkView";
 
 export default function PriceBenchmarkPage() {
-  return (
-    <TabPlaceholder
-      title="Price Benchmark Analysis"
-      description="Multi-platform pricing comparison at SKU level with Category, Region, and Condition filters."
-    />
-  );
+  return <PriceBenchmarkView />;
 }

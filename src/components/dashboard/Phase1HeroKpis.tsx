@@ -2,8 +2,11 @@
 
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { PHASE1_HERO_KPIS, type HeroKpiTrend } from "@/lib/site-config";
+import { useData } from "@/context/DataContext";
+import { computeHeroKpis } from "@/lib/market-stats";
+import { type HeroKpiTrend } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function TrendIcon({ trend }: { trend: HeroKpiTrend }) {
   if (trend === "positive") return <ArrowUpRight className="h-4 w-4" aria-hidden />;
@@ -19,9 +22,30 @@ const accentClass: Record<string, string> = {
 };
 
 export function Phase1HeroKpis() {
+  const { ebayProducts, amazonProducts, loading } = useData();
+  const kpis = loading ? null : computeHeroKpis(ebayProducts, amazonProducts);
+
+  if (loading || !kpis) {
+    return (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i} className="card-accent-cyan">
+            <CardHeader className="pb-2">
+              <Skeleton className="h-4 w-40 bg-white/10" />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Skeleton className="h-9 w-28 bg-white/10" />
+              <Skeleton className="h-3 w-full bg-white/10" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {PHASE1_HERO_KPIS.map((kpi) => {
+      {kpis.map((kpi) => {
         const trendColor =
           kpi.trend === "positive"
             ? "text-[#00d084]"

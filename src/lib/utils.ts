@@ -15,6 +15,17 @@ export function formatPrice(value: number | null | undefined): string {
   }).format(value);
 }
 
+/** Large USD totals for KPIs: prefer $M / $K instead of long raw amounts. */
+export function formatUsdLiquidity(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value) || value < 0) return "N/A";
+  const abs = value;
+  if (abs >= 1_000_000_000) return `$${(abs / 1_000_000_000).toFixed(2)}B`;
+  if (abs >= 1_000_000) return `$${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 100_000) return `$${(abs / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `$${(abs / 1_000).toFixed(1)}K`;
+  return formatPrice(abs);
+}
+
 export function formatNumber(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "N/A";
   return new Intl.NumberFormat("en-US").format(value);

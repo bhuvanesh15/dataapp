@@ -17,19 +17,19 @@ const pageMeta: Record<
   },
   "/price-benchmark": {
     title: "Price Benchmark",
-    subtitle: "Multi-platform pricing comparison at SKU level (Phase 2).",
+    subtitle: "Live table from Amazon + eBay CSVs vs dataset median.",
   },
   "/seller-discovery": {
     title: "Seller Discovery",
-    subtitle: "Alternative vendors outside tariff-heavy regions (Phase 2).",
+    subtitle: "Sellers aggregated from your scrape (ratings, volume, location).",
   },
   "/market-velocity": {
     title: "Market Velocity",
-    subtitle: "Transaction frequency and price momentum (Phase 2).",
+    subtitle: "Scrape recency, listing counts, and eBay units sold.",
   },
   "/sku-drilldown": {
     title: "SKU Drilldown",
-    subtitle: "Single-SKU analysis across platforms (Phase 2).",
+    subtitle: "eBay listings grouped by search term — range and sample rows.",
   },
   "/settings": { title: "Settings" },
   "/upload": { title: "Upload Data", subtitle: "Legacy CSV workflow (Phase 0)." },
