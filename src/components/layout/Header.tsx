@@ -2,11 +2,13 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { Download } from "lucide-react";
+import { Download, Mail } from "lucide-react";
+import Link from "next/link";
 import { useData } from "@/context/DataContext";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { buildPhase1DownloadPayload } from "@/lib/site-config";
 
 const GlobalSearchContext = React.createContext<{
@@ -70,6 +72,16 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
             className="glass-input h-9 max-w-xs rounded-xl border-[#2d3a4d] bg-[#121a26]/80 placeholder:text-[#64748b]"
             aria-label="Search"
           />
+          <Link
+            href="mailto:hello@intelligents.work?subject=Book%20a%20demo%20%E2%80%94%20Market%20Intelligence"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "shrink-0 gap-1.5 border-[#2d3a4d] bg-transparent text-[#bae6fd] hover:bg-white/5 hover:text-white"
+            )}
+          >
+            <Mail className="h-4 w-4" />
+            Book a Demo
+          </Link>
           <Button
             type="button"
             variant="default"
@@ -78,14 +90,14 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
             onClick={downloadPhase1Summary}
           >
             <Download className="h-4 w-4" />
-            Download
+            Export Data
           </Button>
           {lastRefresh ? (
             <Badge
               variant="secondary"
               className="shrink-0 border-[rgba(56,189,248,0.35)] bg-[rgba(56,189,248,0.12)] px-2.5 py-0.5 text-[#bae6fd] shadow-[0_0_12px_rgba(56,189,248,0.15)] backdrop-blur-sm"
             >
-              Data loaded {lastRefresh.toLocaleDateString()}
+              Last updated {lastRefresh.toLocaleDateString()}
             </Badge>
           ) : null}
         </div>

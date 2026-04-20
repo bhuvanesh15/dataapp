@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useData } from "@/context/DataContext";
-import { benchmarkCategoryOptions, buildBenchmarkRows } from "@/lib/market-stats";
+import { benchmarkCategoryOptions, benchmarkConditionOptions, buildBenchmarkRows } from "@/lib/market-stats";
 import { formatPrice, formatPercent, cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,9 +19,14 @@ export function PriceBenchmarkView() {
   const { ebayProducts, amazonProducts, loading } = useData();
   const [category, setCategory] = useState<string>("all");
   const [platform, setPlatform] = useState<"all" | "ebay" | "amazon">("all");
+  const [condition, setCondition] = useState<string>("all");
 
   const categories = useMemo(
     () => benchmarkCategoryOptions(ebayProducts, amazonProducts),
+    [ebayProducts, amazonProducts]
+  );
+  const conditions = useMemo(
+    () => benchmarkConditionOptions(ebayProducts, amazonProducts),
     [ebayProducts, amazonProducts]
   );
 
@@ -30,8 +35,9 @@ export function PriceBenchmarkView() {
       buildBenchmarkRows(ebayProducts, amazonProducts, {
         category: category === "all" ? undefined : category,
         platform,
+        condition: condition === "all" ? undefined : condition,
       }),
-    [ebayProducts, amazonProducts, category, platform]
+    [ebayProducts, amazonProducts, category, platform, condition]
   );
 
   if (loading) {
@@ -44,11 +50,11 @@ export function PriceBenchmarkView() {
         <CardTitle className="text-white">Price Benchmark Analysis</CardTitle>
         <div className="flex flex-wrap gap-2">
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-[180px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
+            <SelectTrigger className="w-[200px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All categories / terms</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
               {categories.map((c) => (
                 <SelectItem key={c} value={c}>
                   {c.length > 36 ? `${c.slice(0, 36)}…` : c}
@@ -57,13 +63,26 @@ export function PriceBenchmarkView() {
             </SelectContent>
           </Select>
           <Select value={platform} onValueChange={(v) => setPlatform(v as typeof platform)}>
-            <SelectTrigger className="w-[140px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
+            <SelectTrigger className="w-[160px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
               <SelectValue placeholder="Platform" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All platforms</SelectItem>
+              <SelectItem value="all">All Platforms</SelectItem>
               <SelectItem value="ebay">eBay</SelectItem>
               <SelectItem value="amazon">Amazon</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={condition} onValueChange={setCondition}>
+            <SelectTrigger className="w-[180px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
+              <SelectValue placeholder="Condition" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Conditions</SelectItem>
+              {conditions.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c.length > 34 ? `${c.slice(0, 34)}…` : c}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -74,7 +93,7 @@ export function PriceBenchmarkView() {
             <tr className="border-b border-[#2d3a4d] bg-[#0f1623] text-[11px] font-semibold uppercase tracking-wide text-[#8da2b2]">
               <th className="p-3">Brand / model</th>
               <th className="p-3">Platform</th>
-              <th className="p-3">Region / dept</th>
+              <th className="p-3">Region</th>
               <th className="p-3">Condition</th>
               <th className="p-3">Price (USD)</th>
               <th className="p-3">vs median</th>
@@ -84,7 +103,7 @@ export function PriceBenchmarkView() {
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={6} className="p-8 text-center text-[#8da2b2]">
-                  No rows match filters. Upload CSVs or widen filters.
+                  No rows match filters. Try a different filter.
                 </td>
               </tr>
             ) : (
@@ -126,14 +145,14 @@ export function PriceBenchmarkView() {
         <Phase1Insights
           items={[
             {
-              title: "Dataset note",
+              title: "Pricing note",
               description:
-                "“vs median” compares each row to the median price across all Amazon + eBay listings in the loaded scrape. Not a live competitor benchmark.",
+                "Prices reflect ask and listing prices from monitored marketplace records. Not adjusted for shipping or duties.",
             },
             {
-              title: "Regional mix (illustrative)",
+              title: "Region",
               description:
-                "eBay rows use Location of Product; Amazon uses department or address tail. Tariff and cross-border routing are not modeled in Phase 1.",
+                "Region reflects available seller or listing location from monitored marketplace data.",
             },
           ]}
         />

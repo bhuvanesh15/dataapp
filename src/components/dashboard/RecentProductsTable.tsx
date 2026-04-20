@@ -98,7 +98,7 @@ export function RecentProductsTable() {
                 <TableHead>Product Name</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Seller</TableHead>
-                <TableHead>Date Scraped</TableHead>
+                <TableHead>Date Captured</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

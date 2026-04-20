@@ -43,7 +43,7 @@ export function ScrapeTimeline() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Scrape Timeline</CardTitle>
+          <CardTitle>Monitoring Timeline</CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-[200px] w-full" />
@@ -55,7 +55,7 @@ export function ScrapeTimeline() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Scrape Timeline</CardTitle>
+        <CardTitle>Monitoring Timeline</CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={200}>

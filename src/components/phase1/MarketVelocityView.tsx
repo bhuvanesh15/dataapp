@@ -27,7 +27,7 @@ export function MarketVelocityView() {
       <CardHeader>
         <CardTitle className="text-white">Market Velocity & Trends</CardTitle>
         <p className="text-sm text-[#8da2b2]">
-          Derived from scrape dates and eBay “items sold” fields in your CSVs.
+          Derived from captured dates and marketplace sold-item fields in the current dataset.
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -53,7 +53,7 @@ export function MarketVelocityView() {
                 <th className="p-3">Product</th>
                 <th className="p-3">Platform</th>
                 <th className="p-3">Velocity signal</th>
-                <th className="p-3">Last scrape</th>
+                <th className="p-3">Date Captured</th>
                 <th className="p-3">Trend</th>
               </tr>
             </thead>
@@ -73,7 +73,7 @@ export function MarketVelocityView() {
                     <td className="p-3 text-white">{r.brandModel}</td>
                     <td className="p-3 text-[#8da2b2]">{r.platform}</td>
                     <td className="p-3 text-[#cbd5e1]">{r.signal}</td>
-                    <td className="p-3 text-[#64748b]">{r.lastScrape}</td>
+                    <td className="p-3 text-[#64748b]">{r.dateCaptured}</td>
                     <td className="p-3">
                       <span
                         className={
@@ -95,14 +95,14 @@ export function MarketVelocityView() {
         <Phase1Insights
           items={[
             {
-              title: "What we can measure today",
+              title: "Current coverage",
               description:
-                "Scrape recency and eBay units-sold columns support simple velocity proxies. StockX / Dewu style feeds are not in this dataset.",
+                "Captured-date recency and eBay units-sold fields support velocity signals on this dataset.",
             },
             {
-              title: "Price momentum (placeholder)",
+              title: "Price momentum",
               description:
-                "Multi-day price change counts require historical snapshots. Wireframe numbers like “1,247 adjustments” remain illustrative until time-series data lands.",
+                "Multi-period tracking becomes more precise as additional historical snapshots accumulate.",
             },
           ]}
         />

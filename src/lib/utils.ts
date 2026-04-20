@@ -5,6 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function clamp(n: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, n));
+}
+
 export function formatPrice(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "N/A";
   return new Intl.NumberFormat("en-US", {

@@ -34,7 +34,7 @@ export function SkuDrilldownView() {
     return (
       <Card className="border-[#2d3a4d] bg-[#121a26]/50">
         <CardContent className="p-8 text-[#8da2b2]">
-          No eBay search terms in dataset. SKU drilldown uses eBay “Search Term” grouping.
+          No tracked product queries in the dataset. SKU Deep Dive groups eBay rows by tracked search term.
         </CardContent>
       </Card>
     );
@@ -47,9 +47,9 @@ export function SkuDrilldownView() {
     <Card className="border-[#2d3a4d] bg-[#121a26]/50">
       <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <CardTitle className="text-white">SKU deep dive (eBay search term)</CardTitle>
+          <CardTitle className="text-white">SKU Deep Dive</CardTitle>
           <p className="mt-1 text-sm text-[#8da2b2]">
-            Price spread across listings that share the same scraped search term.
+            Price spread across listings grouped under the same tracked product query.
           </p>
         </div>
         <Select value={activeTerm} onValueChange={setTerm}>
@@ -79,8 +79,7 @@ export function SkuDrilldownView() {
                 {formatPrice(d.min)} – {formatPrice(d.max)}
               </p>
               <p className="mt-2 text-sm text-[#8da2b2]">
-                Median {d.median != null ? formatPrice(d.median) : "N/A"} · {formatNumber(d.count)} eBay rows · same
-                search term
+                Median {d.median != null ? formatPrice(d.median) : "N/A"} · {formatNumber(d.count)} matching listings
               </p>
             </div>
 
@@ -91,7 +90,7 @@ export function SkuDrilldownView() {
                     <th className="p-3">Seller</th>
                     <th className="p-3">Condition</th>
                     <th className="p-3">Price</th>
-                    <th className="p-3">Scrape date</th>
+                    <th className="p-3">Date Captured</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -112,12 +111,12 @@ export function SkuDrilldownView() {
                 {
                   title: "Condition spread",
                   description:
-                    "Compare min/median/max and the condition column to see how grading affects ask prices within the same search term.",
+                    "Compare min, median, and max prices by condition grading within the same tracked query.",
                 },
                 {
-                  title: "Amazon drilldown",
+                  title: "Amazon comparison",
                   description:
-                    "Amazon rows are not grouped by a single SKU id in this CSV; use Price Benchmark for Amazon vs eBay side-by-side.",
+                    "Amazon records are grouped at query level; use Price Benchmark tab for Amazon vs eBay comparison.",
                 },
               ]}
             />

@@ -123,7 +123,7 @@ export function getEbayColumns(): ColumnDef<EbayProduct, unknown>[] {
     },
     {
       accessorKey: "Date Scraped",
-      header: "Date Scraped",
+      header: "Date Captured",
       cell: ({ getValue }) => {
         const v = getValue() as string;
         if (!v) return "N/A";

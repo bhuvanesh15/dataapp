@@ -1,19 +1,13 @@
-/**
- * Intelligents Market Intelligence — Phase 1 shell (branding + hero KPIs).
- * Phase 2 replaces static KPIs with JSON-backed data.
- */
+/** Intelligents Market Intelligence — branding and default hero KPI copy. */
 
 export const SITE = {
   brand: "Intelligents",
-  /** Wireframe / brief primary product title */
   productTitle: "Market Intelligence Dashboard",
-  /** Browser tab + metadata */
   documentTitle: "Intelligents — Market Intelligence",
   description:
-    "Dark-themed market intelligence dashboard — multi-platform pricing, seller discovery, velocity, and SKU drilldown.",
-  /** Dashboard hero line (matches wireframe: below title in header) */
+    "Market intelligence dashboard — monitored marketplace pricing, seller discovery, velocity, and SKU drilldown.",
   dashboardSubtitle:
-    "Real-time pricing, supplier intelligence, and market trends across 13+ data sources.",
+    "Pricing, supplier intelligence, and market trends across 13+ market data sources.",
 } as const;
 
 export type HeroKpiTrend = "positive" | "negative" | "neutral";
@@ -27,7 +21,7 @@ export type Phase1HeroKpi = {
   footnote: string;
 };
 
-/** Fallback hero KPIs when CSVs are empty or a metric cannot be computed. Tariff row stays illustrative. */
+/** Fallback hero KPIs when data is empty or a metric cannot be computed. */
 export const PHASE1_HERO_KPIS: Phase1HeroKpi[] = [
   {
     id: "cross-market-price-gap",
@@ -75,6 +69,6 @@ export function buildPhase1DownloadPayload() {
       trend,
       footnote,
     })),
-    note: "Phase 1 static snapshot — live JSON pipeline in Phase 2.",
+    note: "Snapshot of hero KPI labels and values at export time.",
   };
 }

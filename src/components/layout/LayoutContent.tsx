@@ -17,19 +17,19 @@ const pageMeta: Record<
   },
   "/price-benchmark": {
     title: "Price Benchmark",
-    subtitle: "Live table from Amazon + eBay CSVs vs dataset median.",
+    subtitle: "Monitored Amazon and eBay listing prices vs dataset median.",
   },
   "/seller-discovery": {
     title: "Seller Discovery",
-    subtitle: "Sellers aggregated from your scrape (ratings, volume, location).",
+    subtitle: "Sellers from monitored listings with ratings, volume, and location.",
   },
   "/market-velocity": {
     title: "Market Velocity",
-    subtitle: "Scrape recency, listing counts, and eBay units sold.",
+    subtitle: "Capture recency, listing counts, and eBay units sold.",
   },
   "/sku-drilldown": {
     title: "SKU Drilldown",
-    subtitle: "eBay listings grouped by search term — range and sample rows.",
+    subtitle: "eBay listings by tracked product query — range and sample rows.",
   },
   "/settings": { title: "Settings" },
   "/upload": { title: "Upload Data", subtitle: "Legacy CSV workflow (Phase 0)." },

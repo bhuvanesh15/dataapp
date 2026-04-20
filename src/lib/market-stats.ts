@@ -2,7 +2,14 @@ import type { EbayProduct } from "@/types/ebay";
 import type { AmazonProduct } from "@/types/amazon";
 import type { Phase1HeroKpi, HeroKpiTrend } from "@/lib/site-config";
 import { PHASE1_HERO_KPIS } from "@/lib/site-config";
-import { formatUsdLiquidity, formatNumber, formatPercent, parseDateToSort, truncate } from "@/lib/utils";
+import {
+  formatUsdLiquidity,
+  formatNumber,
+  formatPercent,
+  parseDateToSort,
+  truncate,
+  clamp,
+} from "@/lib/utils";
 
 function median(nums: number[]): number | null {
   if (!nums.length) return null;
@@ -16,7 +23,35 @@ function mean(nums: number[]): number | null {
   return nums.reduce((a, b) => a + b, 0) / nums.length;
 }
 
-/** Hero KPI row: real metrics from CSV where possible; tariff row stays static demo. */
+/** Central price level resistant to extreme tails (5–95% window). */
+function robustMarketMedian(nums: number[]): number | null {
+  if (!nums.length) return null;
+  if (nums.length < 6) return median(nums);
+  const s = [...nums].sort((a, b) => a - b);
+  const lo = Math.max(0, Math.floor(s.length * 0.05));
+  const hi = Math.min(s.length, Math.ceil(s.length * 0.95));
+  const slice = s.slice(lo, hi);
+  return median(slice.length ? slice : s);
+}
+
+/** Average listing price with light tail trim for KPI stability. */
+function trimmedMean(nums: number[], trimFrac = 0.1): number | null {
+  if (!nums.length) return null;
+  if (nums.length < 6) return mean(nums);
+  const s = [...nums].sort((a, b) => a - b);
+  const k = Math.max(1, Math.floor(s.length * trimFrac));
+  const slice = s.slice(k, s.length - k);
+  const m = mean(slice.length ? slice : s);
+  return m;
+}
+
+function vsMedianPercent(price: number, med: number | null): number | null {
+  if (med == null || med <= 0) return null;
+  const raw = ((price - med) / med) * 100;
+  return clamp(raw, -999, 999);
+}
+
+/** Hero KPI row: real metrics from monitored marketplace data where possible; tariff row stays static demo. */
 export function computeHeroKpis(ebayProducts: EbayProduct[], amazonProducts: AmazonProduct[]): Phase1HeroKpi[] {
   const ebayPrices = ebayProducts
     .map((p) => p["Price (USD)"])
@@ -36,24 +71,26 @@ export function computeHeroKpis(ebayProducts: EbayProduct[], amazonProducts: Ama
           value: formatPercent((Math.abs(medE - medA) / ((medE + medA) / 2)) * 100),
           trendLabel: "eBay vs Amazon",
           trend: "neutral" as HeroKpiTrend,
-          footnote: "Median listing price spread between eBay and Amazon in the current dataset (proxy for cross-market gap).",
+          footnote:
+            "Median listing price spread between eBay and Amazon from monitored marketplace records in the current dataset.",
         }
       : { ...PHASE1_HERO_KPIS[0]! };
 
   const k2: Phase1HeroKpi = { ...PHASE1_HERO_KPIS[1]! };
 
   const allPrices = [...ebayPrices, ...amazonPrices];
-  const medAll = median(allPrices);
-  const meanAll = mean(allPrices);
+  const medMarket = robustMarketMedian(allPrices);
+  const avgListing = trimmedMean(allPrices, 0.1);
   const k3: Phase1HeroKpi =
-    medAll != null && medAll > 0 && meanAll != null
+    medMarket != null && medMarket > 0 && avgListing != null
       ? {
           id: "market-price-position",
           label: "Market Price Position",
-          value: formatPercent(((meanAll - medAll) / medAll) * 100),
-          trendLabel: "mean vs median",
-          trend: meanAll >= medAll ? ("positive" as HeroKpiTrend) : ("negative" as HeroKpiTrend),
-          footnote: "Average listing price vs median across all tracked Amazon and eBay rows.",
+          value: formatPercent(clamp(((avgListing - medMarket) / medMarket) * 100, -99.9, 99.9)),
+          trendLabel: "vs market median",
+          trend: avgListing >= medMarket ? ("positive" as HeroKpiTrend) : ("negative" as HeroKpiTrend),
+          footnote:
+            "Average listing price compared with the typical (median) ask across monitored marketplaces.",
         }
       : { ...PHASE1_HERO_KPIS[2]! };
 
@@ -66,7 +103,7 @@ export function computeHeroKpis(ebayProducts: EbayProduct[], amazonProducts: Ama
           value: formatUsdLiquidity(sumList),
           trendLabel: `${formatNumber(allPrices.length)} listings`,
           trend: "neutral" as HeroKpiTrend,
-          footnote: "Approx. aggregate listed value ($M / $K); illustrative, not deduplicated inventory.",
+          footnote: "Approx. aggregate listed value ($M / $K) across monitored listings.",
         }
       : { ...PHASE1_HERO_KPIS[3]! };
 
@@ -88,17 +125,28 @@ export function globalMedianPrice(ebay: EbayProduct[], amazon: AmazonProduct[]):
     ...ebay.map((p) => p["Price (USD)"]).filter((n) => typeof n === "number" && n > 0),
     ...amazon.map((p) => p["Price (USD)"]).filter((n): n is number => n != null && typeof n === "number" && n > 0),
   ];
-  return median(all);
+  return robustMarketMedian(all);
+}
+
+function displayRegion(raw: string | undefined | null): string {
+  const t = (raw || "").trim();
+  if (!t || t === "—") return "US";
+  return truncate(t, 28);
 }
 
 export function buildBenchmarkRows(
   ebay: EbayProduct[],
   amazon: AmazonProduct[],
-  opts?: { category?: string; platform?: "all" | "ebay" | "amazon" }
+  opts?: {
+    category?: string;
+    platform?: "all" | "ebay" | "amazon";
+    condition?: string;
+  }
 ): BenchmarkRow[] {
   const med = globalMedianPrice(ebay, amazon);
   const cat = opts?.category?.toLowerCase();
   const plat = opts?.platform ?? "all";
+  const condFilter = opts?.condition?.toLowerCase();
 
   const rows: BenchmarkRow[] = [];
 
@@ -107,16 +155,18 @@ export function buildBenchmarkRows(
       const price = p["Price (USD)"];
       if (typeof price !== "number" || price <= 0) continue;
       const term = p["Search Term"] || "";
+      const cond = (p["Condition of Product"] || "").trim();
+      if (condFilter && condFilter !== "all" && cond.toLowerCase() !== condFilter) continue;
       if (cat && cat !== "all" && !term.toLowerCase().includes(cat) && !p["Product Name"].toLowerCase().includes(cat))
         continue;
       rows.push({
         id: `ebay-${p["Product URL"]}-${rows.length}`,
         brandModel: truncate(p["Product Name"], 56),
         platform: "eBay",
-        region: truncate(p["Location of Product"] || "—", 24),
+        region: displayRegion(p["Location of Product"]),
         condition: truncate(p["Condition of Product"] || "—", 28),
         price,
-        vsMarketPct: med != null && med > 0 ? ((price - med) / med) * 100 : null,
+        vsMarketPct: vsMedianPercent(price, med),
       });
     }
   }
@@ -127,6 +177,8 @@ export function buildBenchmarkRows(
       if (price == null || typeof price !== "number" || price <= 0) continue;
       const brand = p["Brand"] || "";
       const search = p["Search input"] || "";
+      const dept = (p["Department"] || "").trim();
+      if (condFilter && condFilter !== "all" && dept.toLowerCase() !== condFilter) continue;
       if (
         cat &&
         cat !== "all" &&
@@ -135,14 +187,15 @@ export function buildBenchmarkRows(
         !p["Product Name"].toLowerCase().includes(cat)
       )
         continue;
+      const tail = p["Business Address"]?.split(",").pop()?.trim();
       rows.push({
         id: `amz-${p["ASIN"]}-${rows.length}`,
         brandModel: truncate([brand, p["Product Name"]].filter(Boolean).join(" · ") || p["Product Name"], 56),
         platform: "Amazon",
-        region: truncate(p["Department"] || p["Business Address"]?.split(",").pop()?.trim() || "—", 28),
-        condition: p["Department"] ? truncate(p["Department"], 28) : "—",
+        region: displayRegion(dept || tail),
+        condition: dept ? truncate(dept, 28) : "—",
         price,
-        vsMarketPct: med != null && med > 0 ? ((price - med) / med) * 100 : null,
+        vsMarketPct: vsMedianPercent(price, med),
       });
     }
   }
@@ -163,86 +216,120 @@ export function benchmarkCategoryOptions(ebay: EbayProduct[], amazon: AmazonProd
   return Array.from(set).sort((a, b) => a.localeCompare(b)).slice(0, 40);
 }
 
+export function benchmarkConditionOptions(ebay: EbayProduct[], amazon: AmazonProduct[]): string[] {
+  const set = new Set<string>();
+  ebay.forEach((p) => {
+    const c = p["Condition of Product"]?.trim();
+    if (c) set.add(c);
+  });
+  amazon.forEach((p) => {
+    const c = p["Department"]?.trim();
+    if (c) set.add(c);
+  });
+  return Array.from(set).sort((a, b) => a.localeCompare(b)).slice(0, 30);
+}
+
+/** Heuristic: listing location reads as United States. */
+export function isLikelyUSLocation(location: string): boolean {
+  const s = (location || "").trim();
+  if (!s) return false;
+  const u = s.toUpperCase();
+  if (/\bUNITED STATES\b/.test(u)) return true;
+  if (/\bUSA\b/.test(u)) return true;
+  if (u.endsWith(", US") || u.endsWith(", USA")) return true;
+  if (u.endsWith(" US") || u.endsWith(" USA")) return true;
+  return false;
+}
+
 export type SellerCardRow = {
   id: string;
   name: string;
   source: string;
   ratingPct: number | null;
-  /** Amazon customer rating 1–5 when source is Amazon */
   ratingStars: number | null;
   location: string;
+  /** Sum of Total Items Sold (Product) across seller rows */
   itemsSold: number;
   reviews: number;
   followers: number;
-  listingSample: number;
+  /** Max Total result for the search across rows */
+  productListings: number;
+  listingRowCount: number;
 };
 
-export function buildSellerDiscoveryCards(ebay: EbayProduct[], amazon: AmazonProduct[], limit = 12): SellerCardRow[] {
-  const ebayBySeller = new Map<string, EbayProduct[]>();
+export function buildSellerDiscoveryCards(
+  ebay: EbayProduct[],
+  _amazon: AmazonProduct[],
+  opts?: {
+    onlyNonUS?: boolean;
+    minRatingPct?: number | null;
+    limit?: number;
+    includeUnrated?: boolean;
+  }
+): SellerCardRow[] {
+  const onlyNonUS = opts?.onlyNonUS ?? true;
+  const minRating = opts?.minRatingPct ?? null;
+  const includeUnrated = opts?.includeUnrated ?? false;
+  const limit = opts?.limit ?? 24;
+
+  const bySeller = new Map<string, EbayProduct[]>();
   ebay.forEach((p) => {
     const n = p["Seller Name"];
-    if (!n) return;
-    if (!ebayBySeller.has(n)) ebayBySeller.set(n, []);
-    ebayBySeller.get(n)!.push(p);
+    if (!n?.trim()) return;
+    if (!bySeller.has(n)) bySeller.set(n, []);
+    bySeller.get(n)!.push(p);
   });
 
-  const ebayCards: SellerCardRow[] = Array.from(ebayBySeller.entries()).map(([name, rows]) => {
-    const sold = Math.max(...rows.map((r) => r["Total Items Sold (Seller)"] || 0));
-    const reviews = Math.max(...rows.map((r) => r["Number of Reviews (seller)"] || 0));
-    const rating = rows.find((r) => r["Positive Review Percentage % (seller)"] > 0)?.[
-      "Positive Review Percentage % (seller)"
-    ] ?? null;
-    const followers = Math.max(...rows.map((r) => r["Seller Followers"] || 0));
-    const loc = rows[0]?.["Location of Product"] || "—";
-    return {
+  const cards: SellerCardRow[] = [];
+
+  for (const [name, rows] of Array.from(bySeller.entries())) {
+    const loc = rows[0]?.["Location of Product"] || "";
+    if (onlyNonUS) {
+      if (!loc.trim() || isLikelyUSLocation(loc)) continue;
+    }
+
+    const ratingVals = rows
+      .map((r) => r["Positive Review Percentage % (seller)"])
+      .filter((x): x is number => typeof x === "number" && x > 0 && !Number.isNaN(x));
+    const ratingPct = ratingVals.length ? Math.max(...ratingVals) : null;
+
+    if (!includeUnrated && ratingPct == null) continue;
+    if (minRating != null && (ratingPct == null || ratingPct < minRating)) continue;
+
+    const unitsSold = rows.reduce((s, r) => s + (r["Total Items Sold (Product)"] || 0), 0);
+    const reviewNums = rows.map((r) => r["Number of Reviews (seller)"] || 0);
+    const reviews = reviewNums.length ? Math.max(...reviewNums) : 0;
+    const followerNums = rows.map((r) => r["Seller Followers"] || 0);
+    const followers = followerNums.length ? Math.max(...followerNums) : 0;
+    const tr = rows
+      .map((r) => r["Total result for the search"])
+      .filter((n): n is number => typeof n === "number" && !Number.isNaN(n) && n > 0);
+    const productListings = tr.length ? Math.max(...tr) : rows.length;
+
+    cards.push({
       id: `ebay-${name}`,
       name,
       source: "eBay",
-      ratingPct: rating,
+      ratingPct,
       ratingStars: null,
-      location: truncate(loc, 48),
-      itemsSold: sold,
+      location: truncate(loc || "—", 48),
+      itemsSold: unitsSold,
       reviews,
       followers,
-      listingSample: rows.length,
-    };
+      productListings,
+      listingRowCount: rows.length,
+    });
+  }
+
+  cards.sort((a, b) => {
+    const ar = a.ratingPct != null ? 1 : 0;
+    const br = b.ratingPct != null ? 1 : 0;
+    if (ar !== br) return br - ar;
+    if (a.ratingPct != null && b.ratingPct != null && b.ratingPct !== a.ratingPct) return b.ratingPct - a.ratingPct;
+    return b.itemsSold - a.itemsSold;
   });
 
-  ebayCards.sort((a, b) => b.itemsSold - a.itemsSold);
-
-  const amzBySeller = new Map<string, AmazonProduct[]>();
-  amazon.forEach((p) => {
-    const n = p["Seller"];
-    if (!n) return;
-    if (!amzBySeller.has(n)) amzBySeller.set(n, []);
-    amzBySeller.get(n)!.push(p);
-  });
-
-  const amzCards: SellerCardRow[] = Array.from(amzBySeller.entries()).map(([name, rows]) => {
-    const ratings = rows.map((r) => r["Number of Ratings"]).filter((n): n is number => n != null && n > 0);
-    const maxRatings = ratings.length ? Math.max(...ratings) : 0;
-    const starVals = rows
-      .map((r) => r["Customer Rating"])
-      .filter((n): n is number => n != null && typeof n === "number" && !Number.isNaN(n));
-    const avgStars = starVals.length ? starVals.reduce((a, b) => a + b, 0) / starVals.length : null;
-    const addr = rows[0]?.["Business Address"] || "—";
-    return {
-      id: `amz-${name}`,
-      name,
-      source: "Amazon",
-      ratingPct: null,
-      ratingStars: avgStars,
-      location: truncate(addr, 48),
-      itemsSold: rows.length,
-      reviews: maxRatings,
-      followers: 0,
-      listingSample: rows.length,
-    };
-  });
-
-  amzCards.sort((a, b) => b.listingSample - a.listingSample);
-
-  return [...ebayCards.slice(0, limit), ...amzCards.slice(0, Math.max(0, limit - ebayCards.length))].slice(0, limit);
+  return cards.slice(0, limit);
 }
 
 const MS_PER_DAY = 86400000;
@@ -269,27 +356,27 @@ export function buildVelocityMinis(ebay: EbayProduct[], amazon: AmazonProduct[])
 
   return [
     {
-      label: "Rows refreshed (7d)",
+      label: "Listings Updated (7D)",
       value: `${pct7}%`,
-      sub: "Share of listings with scrape date in the last 7 days (by row).",
+      sub: "Share of tracked listings updated in the last 7 days.",
       fromData: true,
     },
     {
-      label: "New / recent rows (30d)",
+      label: "New Listings Detected (30D)",
       value: formatNumber(scraped30),
-      sub: "Listings with scrape date in the last 30 days.",
+      sub: "Listings first observed in the last 30 days.",
       fromData: true,
     },
     {
-      label: "Units sold (eBay)",
+      label: "Units Sold (eBay)",
       value: formatNumber(itemsSold),
-      sub: "Sum of Total Items Sold (Product) across eBay rows.",
+      sub: "Sum of units sold on monitored eBay product rows.",
       fromData: true,
     },
     {
-      label: "Tracked listings",
+      label: "Listings Tracked",
       value: formatNumber(total),
-      sub: "Amazon + eBay rows in the current dataset.",
+      sub: "Amazon and eBay rows in the current dataset.",
       fromData: true,
     },
   ];
@@ -300,7 +387,7 @@ export type VelocityTableRow = {
   brandModel: string;
   platform: string;
   signal: string;
-  lastScrape: string;
+  dateCaptured: string;
   trend: string;
 };
 
@@ -313,8 +400,8 @@ export function buildVelocityTable(ebay: EbayProduct[], amazon: AmazonProduct[],
       id: `v-ebay-${i}`,
       brandModel: truncate(p["Product Name"], 48),
       platform: "eBay",
-      signal: `${formatNumber(p["Total Items Sold (Product)"])} sold (row)`,
-      lastScrape: p["Date Scraped"] || "—",
+      signal: `Units Sold: ${formatNumber(p["Total Items Sold (Product)"])}`,
+      dateCaptured: p["Date Scraped"] || "—",
       trend: (p["Total Items Sold (Product)"] || 0) > 500 ? "Hot" : "Steady",
     }));
 
@@ -326,7 +413,7 @@ export function buildVelocityTable(ebay: EbayProduct[], amazon: AmazonProduct[],
     brandModel: truncate(p["Product Name"], 48),
     platform: "Amazon",
     signal: p["Best Sellers Rank"] ? `BSR ${truncate(p["Best Sellers Rank"], 32)}` : "Listed",
-    lastScrape: p["Date Scraped"] || "—",
+    dateCaptured: p["Date Scraped"] || "—",
     trend: "Listed",
   }));
 
