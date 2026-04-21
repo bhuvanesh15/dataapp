@@ -133,7 +133,7 @@ export function getEbayColumns(): ColumnDef<EbayProduct, unknown>[] {
     },
     {
       accessorKey: "Week Scraped",
-      header: "Week Scraped",
+      header: "Week Captured",
       cell: ({ getValue }) => {
         const v = getValue() as string;
         if (!v) return "N/A";

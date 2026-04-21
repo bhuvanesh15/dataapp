@@ -113,7 +113,7 @@ export default function UploadPage() {
         <CardHeader>
           <CardTitle>Clear All Data</CardTitle>
           <p className="text-sm text-slate-400">
-            Remove all loaded and imported data from the dashboard. This does not delete your CSV files.
+            Remove all loaded and imported data from the dashboard. This does not delete files on your device.
           </p>
         </CardHeader>
         <CardContent>
@@ -125,16 +125,24 @@ export default function UploadPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Expected CSV Format</CardTitle>
+          <CardTitle>Expected file format</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-slate-400">
+          <p>
+            Exports must keep the original column headers your tool produces (for example{" "}
+            <code className="rounded bg-white/10 px-1 py-0.5 text-xs text-white">Date Scraped</code> and{" "}
+            <code className="rounded bg-white/10 px-1 py-0.5 text-xs text-white">Week Scraped</code>). The dashboard
+            shows these as <strong className="text-white">Date Captured</strong> and{" "}
+            <strong className="text-white">Week Captured</strong> in tables.
+          </p>
           <div>
-            <strong className="text-white">eBay:</strong> Columns such as Search Term, Total result for the search,
-            Product Name, Price (USD), Condition of Product, Seller Name, Date Scraped, Week Scraped, etc.
+            <strong className="text-white">eBay:</strong> Typical columns include Search Term, Total result for the
+            search, Product Name, Price (USD), Condition of Product, Seller Name, date and week columns above, and
+            related seller fields.
           </div>
           <div>
-            <strong className="text-white">Amazon:</strong> Columns such as Seller, Seller URL, Business Name,
-            Product Name, ASIN, Best Sellers Rank, product url, Date Scraped, Week Scraped, etc.
+            <strong className="text-white">Amazon:</strong> Typical columns include Seller, Seller URL, Business Name,
+            Product Name, ASIN, Best Sellers Rank, product url, date and week columns above, and related fields.
           </div>
         </CardContent>
       </Card>
@@ -144,7 +152,7 @@ export default function UploadPage() {
           <DialogHeader>
             <DialogTitle>Clear all data?</DialogTitle>
             <p className="text-sm text-slate-400">
-              This will remove all products and sellers from the dashboard. You can reload data from CSV files or upload again.
+              This will remove all products and sellers from the dashboard. You can import again whenever you need a fresh load.
             </p>
           </DialogHeader>
           <DialogFooter>

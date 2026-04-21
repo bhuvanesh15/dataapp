@@ -17,14 +17,14 @@ export function TabPlaceholder({ title, description }: TabPlaceholderProps) {
       </CardHeader>
       <CardContent className="space-y-4 text-sm text-[#8da2b2]">
         <p>
-          Phase 2 delivers filters, data tables, charts, and insight cards per the Intelligents project brief.
-          Static JSON from the consolidated Excel dataset will power this view.
+          This section will add filters, data tables, charts, and insight cards aligned with your consolidated dataset.
+          Use the main navigation for the live Market Intelligence views.
         </p>
         <Link
           href="/legacy"
           className={cn(buttonVariants({ variant: "outline" }), "inline-flex rounded-xl border-[#2d3a4d]")}
         >
-          View legacy sample charts (CSV)
+          View sample charts and tables
         </Link>
       </CardContent>
     </Card>

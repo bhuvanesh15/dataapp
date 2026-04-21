@@ -134,7 +134,7 @@ export function getAmazonColumns(): ColumnDef<AmazonProduct, unknown>[] {
     },
     {
       accessorKey: "Week Scraped",
-      header: "Week Scraped",
+      header: "Week Captured",
       cell: ({ getValue }) => {
         const v = getValue() as string;
         if (!v) return <span className="text-slate-500">N/A</span>;

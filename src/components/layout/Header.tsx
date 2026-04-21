@@ -73,7 +73,7 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
             aria-label="Search"
           />
           <Link
-            href="mailto:hello@intelligents.work?subject=Book%20a%20demo%20%E2%80%94%20Market%20Intelligence"
+            href="mailto:aj.mak@intelligents.work?subject=Book%20a%20demo%20%E2%80%94%20Market%20Intelligence"
             className={cn(
               buttonVariants({ variant: "outline", size: "sm" }),
               "shrink-0 gap-1.5 border-[#2d3a4d] bg-transparent text-[#bae6fd] hover:bg-white/5 hover:text-white"
