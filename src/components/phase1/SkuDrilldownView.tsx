@@ -49,7 +49,7 @@ export function SkuDrilldownView() {
         <div>
           <CardTitle className="text-white">SKU Deep Dive</CardTitle>
           <p className="mt-1 text-sm text-[#8da2b2]">
-            Price spread across listings grouped under the same tracked product query.
+            Typical asking prices for listings grouped under the same tracked product query (outlier-resistant band).
           </p>
         </div>
         <Select value={activeTerm} onValueChange={setTerm}>
@@ -73,13 +73,26 @@ export function SkuDrilldownView() {
           <>
             <div className="rounded-lg border border-[#2d3a4d] bg-[#0f1623] p-5">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#64748b]">
-                Price range (USD)
+                Typical listing range (USD)
               </p>
               <p className="mt-2 text-3xl font-bold tabular-nums text-white">
-                {formatPrice(d.min)} – {formatPrice(d.max)}
+                {formatPrice(d.bandMin)} – {formatPrice(d.bandMax)}
               </p>
               <p className="mt-2 text-sm text-[#8da2b2]">
                 Median {d.median != null ? formatPrice(d.median) : "N/A"} · {formatNumber(d.count)} matching listings
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-[#64748b]">
+                Most asks fall in this band (central percentiles, tightened if the spread is still far wider than the
+                median). A few mistaken or auction-extreme rows stay in the table below.
+                {d.count >= 6 &&
+                (d.max > d.bandMax * 1.12 ||
+                  d.min < Math.min(d.bandMin * 0.88, d.bandMin - 2) ||
+                  d.max - d.min > (d.bandMax - d.bandMin) * 2.5) ? (
+                  <>
+                    {" "}
+                    Raw min–max in data: {formatPrice(d.min)} – {formatPrice(d.max)}.
+                  </>
+                ) : null}
               </p>
             </div>
 
@@ -111,7 +124,7 @@ export function SkuDrilldownView() {
                 {
                   title: "Condition spread",
                   description:
-                    "Compare min, median, and max prices by condition grading within the same tracked query.",
+                    "Compare typical bands and medians by condition grading within the same tracked query.",
                 },
                 {
                   title: "Amazon comparison",

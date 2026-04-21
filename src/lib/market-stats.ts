@@ -18,6 +18,68 @@ function median(nums: number[]): number | null {
   return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2;
 }
 
+/** Linear interpolation percentile on a sorted array, p in [0, 100]. */
+function linearPercentile(sorted: number[], p: number): number {
+  const n = sorted.length;
+  if (n === 1) return sorted[0]!;
+  const idx = (p / 100) * (n - 1);
+  const lo = Math.floor(idx);
+  const hi = Math.ceil(idx);
+  const t = idx - lo;
+  return sorted[lo]! * (1 - t) + sorted[hi]! * t;
+}
+
+/**
+ * Headline min/max for SKU drilldown: raw min/max are dominated by junk listings.
+ * Band uses central percentiles and tightens further when the band is still wildly wider than the median.
+ */
+function drilldownDisplayPriceBand(prices: number[]): {
+  bandMin: number;
+  bandMax: number;
+  rawMin: number;
+  rawMax: number;
+} {
+  const s = [...prices].filter((x) => x > 0 && !Number.isNaN(x)).sort((a, b) => a - b);
+  const n = s.length;
+  const rawMin = n ? s[0]! : 0;
+  const rawMax = n ? s[n - 1]! : 0;
+  if (n <= 1) return { bandMin: rawMin, bandMax: rawMax, rawMin, rawMax };
+  if (n < 6) {
+    if (n >= 4) return { bandMin: s[1]!, bandMax: s[n - 2]!, rawMin, rawMax };
+    return { bandMin: rawMin, bandMax: rawMax, rawMin, rawMax };
+  }
+
+  let low = linearPercentile(s, 10);
+  let high = linearPercentile(s, 90);
+  const med = linearPercentile(s, 50);
+
+  const widenVsMedian = (lo: number, hi: number) => {
+    if (med <= 0) return false;
+    const ratio = hi / Math.max(lo, 1e-9);
+    return ratio > 22 || hi > med * 18 || lo < med / 18;
+  };
+
+  if (widenVsMedian(low, high)) {
+    low = linearPercentile(s, 20);
+    high = linearPercentile(s, 80);
+  }
+  if (widenVsMedian(low, high)) {
+    low = linearPercentile(s, 25);
+    high = linearPercentile(s, 75);
+  }
+
+  let bandMin = Math.min(low, high);
+  let bandMax = Math.max(low, high);
+  if (bandMin >= bandMax) {
+    bandMin = linearPercentile(s, 15);
+    bandMax = linearPercentile(s, 85);
+  }
+  if (bandMin >= bandMax) {
+    return { bandMin: rawMin, bandMax: rawMax, rawMin, rawMax };
+  }
+  return { bandMin, bandMax, rawMin, rawMax };
+}
+
 function mean(nums: number[]): number | null {
   if (!nums.length) return null;
   return nums.reduce((a, b) => a + b, 0) / nums.length;
@@ -435,8 +497,12 @@ export function ebaySearchTermsByVolume(ebay: EbayProduct[]): { term: string; co
 export type SkuDrilldownStats = {
   term: string;
   count: number;
+  /** True min/max of all listing prices in the query (can include junk). */
   min: number;
   max: number;
+  /** Typical band for the headline range (percentile-based, outlier-resistant). */
+  bandMin: number;
+  bandMax: number;
   median: number | null;
   rows: { seller: string; condition: string; price: number; date: string }[];
 };
@@ -448,11 +514,14 @@ export function drilldownForSearchTerm(ebay: EbayProduct[], term: string): SkuDr
   const med = median(prices);
   const min = prices.length ? Math.min(...prices) : 0;
   const max = prices.length ? Math.max(...prices) : 0;
+  const { bandMin, bandMax } = drilldownDisplayPriceBand(prices);
   return {
     term,
     count: rows.length,
     min,
     max,
+    bandMin,
+    bandMax,
     median: med,
     rows: rows.slice(0, 40).map((p) => ({
       seller: truncate(p["Seller Name"], 36),
