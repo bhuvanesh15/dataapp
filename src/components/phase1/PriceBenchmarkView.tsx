@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useData } from "@/context/DataContext";
 import { benchmarkCategoryOptions, benchmarkConditionOptions, buildBenchmarkRows } from "@/lib/market-stats";
-import { formatPrice, formatPercent, cn } from "@/lib/utils";
+import { formatPrice, formatPercentWhole, cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -132,7 +132,7 @@ export function PriceBenchmarkView() {
                         )}
                       >
                         {r.vsMarketPct > 0 ? "+" : ""}
-                        {formatPercent(r.vsMarketPct)}
+                        {formatPercentWhole(r.vsMarketPct)}
                       </span>
                     )}
                   </td>

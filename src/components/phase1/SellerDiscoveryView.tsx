@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useData } from "@/context/DataContext";
 import { buildSellerDiscoveryCards } from "@/lib/market-stats";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, formatPercentWhole } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -21,7 +21,7 @@ export function SellerDiscoveryView() {
 
   const minRatingPct = minRating === "all" ? null : minRating === "95" ? 95 : minRating === "90" ? 90 : null;
 
-  const cards = useMemo(
+  const sellers = useMemo(
     () =>
       buildSellerDiscoveryCards(ebayProducts, amazonProducts, {
         onlyNonUS: regionScope === "non_us",
@@ -69,56 +69,50 @@ export function SellerDiscoveryView() {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          {cards.length === 0 ? (
+          {sellers.length === 0 ? (
             <p className="text-[#8da2b2]">
               No sellers match these filters. Try &quot;All Regions&quot; or a lower minimum rating.
             </p>
           ) : (
-            cards.map((s) => (
-              <div
-                key={s.id}
-                className="rounded-lg border border-[#2d3a4d] bg-[#0f1623] p-4"
-              >
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-white">{s.name}</p>
-                    <p className="mt-1 text-xs text-[#64748b]">Source: {s.source}</p>
-                  </div>
-                  <div className="rounded bg-emerald-500/15 px-2 py-1 text-xs font-semibold text-emerald-400">
-                    {s.ratingPct != null
-                      ? `${formatNumber(s.ratingPct)}% positive`
-                      : "Rating unavailable"}
-                  </div>
-                </div>
-                <div className="grid gap-2 text-sm text-[#8da2b2] sm:grid-cols-2 lg:grid-cols-3">
-                  <div>
-                    <strong className="text-[#cbd5e1]">Location</strong>
-                    <br />
-                    {s.location}
-                  </div>
-                  <div>
-                    <strong className="text-[#cbd5e1]">Units Sold</strong>
-                    <br />
-                    {formatNumber(s.itemsSold)}
-                  </div>
-                  <div>
-                    <strong className="text-[#cbd5e1]">Product Listings</strong>
-                    <br />
-                    {formatNumber(s.productListings)}
-                  </div>
-                  <div>
-                    <strong className="text-[#cbd5e1]">Reviews</strong>
-                    <br />
-                    {formatNumber(s.reviews)}
-                  </div>
-                  <div>
-                    <strong className="text-[#cbd5e1]">Followers</strong>
-                    <br />
-                    {formatNumber(s.followers)}
-                  </div>
-                </div>
-              </div>
-            ))
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[#2d3a4d] bg-[#0f1623] text-[11px] font-semibold uppercase tracking-wide text-[#8da2b2]">
+                    <th className="p-3">Seller</th>
+                    <th className="p-3">Location</th>
+                    <th className="p-3">Units Sold</th>
+                    <th className="p-3">Product Listings</th>
+                    <th className="p-3">Reviews</th>
+                    <th className="p-3">Followers</th>
+                    <th className="p-3">Positive %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sellers.map((s) => (
+                    <tr
+                      key={s.id}
+                      className="border-b border-[#2d3a4d]/80 transition-colors hover:bg-[#0f1623]/80"
+                    >
+                      <td className="p-3 text-white">{s.name}</td>
+                      <td className="p-3 text-[#8da2b2]">{s.location}</td>
+                      <td className="p-3 text-[#cbd5e1]">{formatNumber(s.itemsSold)}</td>
+                      <td className="p-3 text-[#cbd5e1]">{formatNumber(s.productListings)}</td>
+                      <td className="p-3 text-[#cbd5e1]">{formatNumber(s.reviews)}</td>
+                      <td className="p-3 text-[#cbd5e1]">{formatNumber(s.followers)}</td>
+                      <td className="p-3">
+                        {s.ratingPct == null ? (
+                          <span className="text-[#64748b]">—</span>
+                        ) : (
+                          <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400">
+                            {formatPercentWhole(s.ratingPct)}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>

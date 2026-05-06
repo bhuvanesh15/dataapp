@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useData } from "@/context/DataContext";
 import { drilldownForSearchTerm, ebaySearchTermsByVolume } from "@/lib/market-stats";
 import { formatPrice, formatNumber } from "@/lib/utils";
@@ -13,18 +13,75 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Phase1Insights } from "./Phase1Insights";
+
+function inferBrandAndCategory(term: string): { brand: string; category: string } {
+  const t = term.toLowerCase();
+  let brand = "Other";
+  if (t.includes("air jordan") || t.includes("jordan")) brand = "Air Jordan";
+  else if (t.includes("nike")) brand = "Nike";
+  else if (t.includes("adidas")) brand = "Adidas";
+  else if (t.includes("new balance")) brand = "New Balance";
+  else if (t.includes("puma")) brand = "Puma";
+  else if (t.includes("rolex")) brand = "Rolex";
+
+  let category = "Other";
+  if (
+    t.includes("sneaker") ||
+    t.includes("shoe") ||
+    t.includes("trainer") ||
+    t.includes("jordan") ||
+    t.includes("yeezy")
+  ) {
+    category = "Sneakers";
+  } else if (t.includes("watch")) {
+    category = "Watches";
+  }
+
+  return { brand, category };
+}
 
 export function SkuDrilldownView() {
   const { ebayProducts, loading } = useData();
   const terms = useMemo(() => ebaySearchTermsByVolume(ebayProducts), [ebayProducts]);
-  const [term, setTerm] = useState<string>("");
+  const [brand, setBrand] = useState<string>("all");
+  const [category, setCategory] = useState<string>("all");
+  const [sku, setSku] = useState<string>("");
+
+  const termMeta = useMemo(
+    () =>
+      terms.map((t) => ({
+        ...t,
+        ...inferBrandAndCategory(t.term),
+      })),
+    [terms]
+  );
+
+  const brandOptions = useMemo(
+    () => Array.from(new Set(termMeta.map((t) => t.brand))).sort((a, b) => a.localeCompare(b)),
+    [termMeta]
+  );
+  const categoryOptions = useMemo(
+    () => Array.from(new Set(termMeta.map((t) => t.category))).sort((a, b) => a.localeCompare(b)),
+    [termMeta]
+  );
+  const filteredTerms = useMemo(
+    () =>
+      termMeta.filter(
+        (t) => (brand === "all" || t.brand === brand) && (category === "all" || t.category === category)
+      ),
+    [brand, category, termMeta]
+  );
+  const activeSku = filteredTerms.some((t) => t.term === sku) ? sku : filteredTerms[0]?.term || "";
+
+  useEffect(() => {
+    if (activeSku && sku !== activeSku) setSku(activeSku);
+  }, [activeSku, sku]);
 
   const stats = useMemo(() => {
-    const t = term || terms[0]?.term || "";
+    const t = activeSku;
     if (!t) return null;
     return drilldownForSearchTerm(ebayProducts, t);
-  }, [ebayProducts, term, terms]);
+  }, [activeSku, ebayProducts]);
 
   if (loading) {
     return <Skeleton className="h-[520px] w-full rounded-xl border border-[#2d3a4d] bg-[#121a26]/50" />;
@@ -40,35 +97,68 @@ export function SkuDrilldownView() {
     );
   }
 
-  const activeTerm = term || terms[0]!.term;
-  const d = stats ?? drilldownForSearchTerm(ebayProducts, activeTerm);
+  const d = stats ?? drilldownForSearchTerm(ebayProducts, activeSku);
 
   return (
     <Card className="border-[#2d3a4d] bg-[#121a26]/50">
-      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <CardHeader className="flex flex-col gap-4">
         <div>
           <CardTitle className="text-white">SKU Deep Dive</CardTitle>
           <p className="mt-1 text-sm text-[#8da2b2]">
-            Typical asking prices for listings grouped under the same tracked product query (outlier-resistant band).
+            Comprehensive pricing analysis, spread variance, and active listings for a specific product.
           </p>
         </div>
-        <Select value={activeTerm} onValueChange={setTerm}>
-          <SelectTrigger className="w-[min(100%,280px)] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
-            <SelectValue placeholder="Search term" />
-          </SelectTrigger>
-          <SelectContent>
-            {terms.map((t) => {
-              const label = t.term.length > 36 ? `${t.term.slice(0, 36)}…` : t.term;
-              return (
-                <SelectItem key={t.term} value={t.term}>
-                  {label} ({t.count})
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={brand} onValueChange={setBrand}>
+            <SelectTrigger className="w-[190px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
+              <SelectValue placeholder="All Brands" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Brands</SelectItem>
+              {brandOptions.map((b) => (
+                <SelectItem key={b} value={b}>
+                  {b}
                 </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="w-[200px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categoryOptions.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={activeSku} onValueChange={setSku}>
+            <SelectTrigger className="w-[min(100%,320px)] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
+              <SelectValue placeholder="Select SKU" />
+            </SelectTrigger>
+            <SelectContent>
+              {filteredTerms.map((t) => {
+                const label = t.term.length > 40 ? `${t.term.slice(0, 40)}…` : t.term;
+                return (
+                  <SelectItem key={t.term} value={t.term}>
+                    {label} ({t.count})
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+          <div className="inline-flex h-10 max-w-[280px] items-center rounded-xl border border-[#2d3a4d] bg-[#0f1623] px-3 text-sm font-medium text-white">
+            {activeSku || "Select SKU"}
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {!d ? (
+          <p className="text-sm text-[#8da2b2]">No SKUs match the selected Brand and Category filters.</p>
+        ) : null}
         {d && (
           <>
             <div className="rounded-lg border border-[#2d3a4d] bg-[#0f1623] p-5">
@@ -82,17 +172,8 @@ export function SkuDrilldownView() {
                 Median {d.median != null ? formatPrice(d.median) : "N/A"} · {formatNumber(d.count)} matching listings
               </p>
               <p className="mt-2 text-xs leading-relaxed text-[#64748b]">
-                Most asks fall in this band (central percentiles, tightened if the spread is still far wider than the
-                median). A few mistaken or auction-extreme rows stay in the table below.
-                {d.count >= 6 &&
-                (d.max > d.bandMax * 1.12 ||
-                  d.min < Math.min(d.bandMin * 0.88, d.bandMin - 2) ||
-                  d.max - d.min > (d.bandMax - d.bandMin) * 2.5) ? (
-                  <>
-                    {" "}
-                    Raw min–max in data: {formatPrice(d.min)} – {formatPrice(d.max)}.
-                  </>
-                ) : null}
+                Represents the core market pricing band. Algorithm excludes extreme edge-cases and anomalous auction
+                data to provide a highly accurate pricing baseline.
               </p>
             </div>
 
@@ -100,6 +181,7 @@ export function SkuDrilldownView() {
               <table className="w-full min-w-[520px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-[#2d3a4d] bg-[#0f1623] text-[11px] font-semibold uppercase tracking-wide text-[#8da2b2]">
+                    <th className="p-3">Product Name</th>
                     <th className="p-3">Seller</th>
                     <th className="p-3">Condition</th>
                     <th className="p-3">Price</th>
@@ -109,6 +191,7 @@ export function SkuDrilldownView() {
                 <tbody>
                   {d.rows.map((r, i) => (
                     <tr key={i} className="border-b border-[#2d3a4d]/80 hover:bg-[#0f1623]/80">
+                      <td className="p-3 text-white">{r.productName}</td>
                       <td className="p-3 text-white">{r.seller}</td>
                       <td className="p-3 text-[#8da2b2]">{r.condition}</td>
                       <td className="p-3 font-medium tabular-nums text-white">{formatPrice(r.price)}</td>
@@ -118,21 +201,6 @@ export function SkuDrilldownView() {
                 </tbody>
               </table>
             </div>
-
-            <Phase1Insights
-              items={[
-                {
-                  title: "Condition spread",
-                  description:
-                    "Compare typical bands and medians by condition grading within the same tracked query.",
-                },
-                {
-                  title: "Amazon comparison",
-                  description:
-                    "Amazon records are grouped at query level; use Price Benchmark tab for Amazon vs eBay comparison.",
-                },
-              ]}
-            />
           </>
         )}
       </CardContent>

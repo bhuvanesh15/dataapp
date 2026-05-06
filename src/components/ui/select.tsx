@@ -8,6 +8,8 @@ const SelectContext = React.createContext<{
   onValueChange: (v: string) => void;
   open: boolean;
   setOpen: (v: boolean) => void;
+  labels: Record<string, string>;
+  registerLabel: (value: string, label: string) => void;
 } | null>(null);
 
 export function Select({
@@ -21,14 +23,18 @@ export function Select({
 }) {
   const [open, setOpen] = React.useState(false);
   const [internalValue, setInternalValue] = React.useState("");
+  const [labels, setLabels] = React.useState<Record<string, string>>({});
   const val = value ?? internalValue;
   const handleChange = (v: string) => {
     if (value === undefined) setInternalValue(v);
     onValueChange(v);
     setOpen(false);
   };
+  const registerLabel = React.useCallback((optionValue: string, label: string) => {
+    setLabels((prev) => (prev[optionValue] === label ? prev : { ...prev, [optionValue]: label }));
+  }, []);
   return (
-    <SelectContext.Provider value={{ value: val, onValueChange: handleChange, open, setOpen }}>
+    <SelectContext.Provider value={{ value: val, onValueChange: handleChange, open, setOpen, labels, registerLabel }}>
       <div className="relative">{children}</div>
     </SelectContext.Provider>
   );
@@ -54,6 +60,9 @@ const SelectTrigger = React.forwardRef<
       {...props}
     >
       {children}
+      <span aria-hidden className="ml-2 shrink-0 text-xs text-[#8da2b2]">
+        ▼
+      </span>
     </button>
   );
 });
@@ -62,7 +71,7 @@ SelectTrigger.displayName = "SelectTrigger";
 const SelectValue = ({ placeholder }: { placeholder?: string }) => {
   const ctx = React.useContext(SelectContext);
   if (!ctx) return null;
-  return <span>{ctx.value || placeholder}</span>;
+  return <span>{ctx.labels[ctx.value] || placeholder}</span>;
 };
 
 const SelectContent = React.forwardRef<
@@ -101,12 +110,29 @@ SelectContent.displayName = "SelectContent";
 
 const SelectItem = ({
   value,
+  textValue,
   className,
   children,
   ...props
-}: React.HTMLAttributes<HTMLDivElement> & { value: string }) => {
+}: React.HTMLAttributes<HTMLDivElement> & { value: string; textValue?: string }) => {
   const ctx = React.useContext(SelectContext);
   if (!ctx) return null;
+  const label = React.useMemo(() => {
+    if (textValue?.trim()) return textValue.trim();
+    if (typeof children === "string") return children;
+    if (Array.isArray(children)) {
+      return children
+        .filter((c) => typeof c === "string")
+        .join("")
+        .trim();
+    }
+    return value;
+  }, [children, textValue, value]);
+
+  React.useEffect(() => {
+    if (label) ctx.registerLabel(value, label);
+  }, [ctx, label, value]);
+
   return (
     <div
       role="option"

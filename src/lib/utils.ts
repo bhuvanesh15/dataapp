@@ -11,11 +11,12 @@ export function clamp(n: number, lo: number, hi: number): number {
 
 export function formatPrice(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "N/A";
+  const overThousand = Math.abs(value) >= 1000;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: overThousand ? 0 : 2,
+    maximumFractionDigits: overThousand ? 0 : 2,
   }).format(value);
 }
 
@@ -38,6 +39,11 @@ export function formatNumber(value: number | null | undefined): string {
 export function formatPercent(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "N/A";
   return `${value.toFixed(1)}%`;
+}
+
+export function formatPercentWhole(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "N/A";
+  return `${Math.round(value)}%`;
 }
 
 /** Normalize and format date string. Handles YYYY-MM-DD (eBay), DD-MM-YYYY (Amazon), MM-DD-YYYY */

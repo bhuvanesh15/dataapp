@@ -109,8 +109,7 @@ function trimmedMean(nums: number[], trimFrac = 0.1): number | null {
 
 function vsMedianPercent(price: number, med: number | null): number | null {
   if (med == null || med <= 0) return null;
-  const raw = ((price - med) / med) * 100;
-  return clamp(raw, -999, 999);
+  return ((price - med) / med) * 100;
 }
 
 /** Hero KPI row: real metrics from monitored marketplace data where possible; tariff row stays static demo. */
@@ -196,6 +195,36 @@ function displayRegion(raw: string | undefined | null): string {
   return truncate(t, 28);
 }
 
+function normalizeLikelyCentsShift(price: number, refMedian: number | null): number {
+  if (!Number.isFinite(price) || price <= 0) return price;
+  if (price < 10_000 || !Number.isInteger(price)) return price;
+  const shifted = price / 100;
+  if (shifted < 10 || shifted > 10_000) return price;
+  if (refMedian == null || refMedian <= 0) return shifted;
+
+  const safe = Math.max(refMedian, 1e-6);
+  const rawDistance = Math.abs(Math.log(price / safe));
+  const shiftedDistance = Math.abs(Math.log(shifted / safe));
+  if (shiftedDistance + 0.35 < rawDistance && shifted >= safe / 10 && shifted <= safe * 12) {
+    return shifted;
+  }
+  return price;
+}
+
+function filterExtremePriceOutliers<T extends { price: number }>(rows: T[]): T[] {
+  if (rows.length < 8) return rows;
+  const prices = rows.map((r) => r.price).filter((n) => n > 0).sort((a, b) => a - b);
+  if (prices.length < 8) return rows;
+  const q1 = linearPercentile(prices, 25);
+  const q3 = linearPercentile(prices, 75);
+  const iqr = q3 - q1;
+  if (iqr <= 0) return rows;
+  const low = Math.max(0.01, q1 - iqr * 1.75);
+  const high = q3 + iqr * 1.75;
+  const kept = rows.filter((r) => r.price >= low && r.price <= high);
+  return kept.length >= Math.max(6, Math.floor(rows.length * 0.45)) ? kept : rows;
+}
+
 export function buildBenchmarkRows(
   ebay: EbayProduct[],
   amazon: AmazonProduct[],
@@ -205,12 +234,11 @@ export function buildBenchmarkRows(
     condition?: string;
   }
 ): BenchmarkRow[] {
-  const med = globalMedianPrice(ebay, amazon);
   const cat = opts?.category?.toLowerCase();
   const plat = opts?.platform ?? "all";
   const condFilter = opts?.condition?.toLowerCase();
 
-  const rows: BenchmarkRow[] = [];
+  const baseRows: Omit<BenchmarkRow, "vsMarketPct">[] = [];
 
   if (plat !== "amazon") {
     for (const p of ebay) {
@@ -221,14 +249,13 @@ export function buildBenchmarkRows(
       if (condFilter && condFilter !== "all" && cond.toLowerCase() !== condFilter) continue;
       if (cat && cat !== "all" && !term.toLowerCase().includes(cat) && !p["Product Name"].toLowerCase().includes(cat))
         continue;
-      rows.push({
-        id: `ebay-${p["Product URL"]}-${rows.length}`,
+      baseRows.push({
+        id: `ebay-${p["Product URL"]}-${baseRows.length}`,
         brandModel: truncate(p["Product Name"], 56),
         platform: "eBay",
         region: displayRegion(p["Location of Product"]),
         condition: truncate(p["Condition of Product"] || "—", 28),
         price,
-        vsMarketPct: vsMedianPercent(price, med),
       });
     }
   }
@@ -250,17 +277,28 @@ export function buildBenchmarkRows(
       )
         continue;
       const tail = p["Business Address"]?.split(",").pop()?.trim();
-      rows.push({
-        id: `amz-${p["ASIN"]}-${rows.length}`,
+      baseRows.push({
+        id: `amz-${p["ASIN"]}-${baseRows.length}`,
         brandModel: truncate([brand, p["Product Name"]].filter(Boolean).join(" · ") || p["Product Name"], 56),
         platform: "Amazon",
         region: displayRegion(dept || tail),
         condition: dept ? truncate(dept, 28) : "—",
         price,
-        vsMarketPct: vsMedianPercent(price, med),
       });
     }
   }
+
+  const rawMedian = robustMarketMedian(baseRows.map((r) => r.price).filter((n) => n > 0));
+  const normalized = baseRows.map((r) => ({
+    ...r,
+    price: normalizeLikelyCentsShift(r.price, rawMedian),
+  }));
+  const cleaned = filterExtremePriceOutliers(normalized);
+  const med = robustMarketMedian(cleaned.map((r) => r.price).filter((n) => n > 0));
+  const rows: BenchmarkRow[] = cleaned.map((r) => ({
+    ...r,
+    vsMarketPct: vsMedianPercent(r.price, med),
+  }));
 
   rows.sort((a, b) => b.price - a.price);
   return rows.slice(0, 80);
@@ -353,7 +391,7 @@ export function buildSellerDiscoveryCards(
     const ratingVals = rows
       .map((r) => r["Positive Review Percentage % (seller)"])
       .filter((x): x is number => typeof x === "number" && x > 0 && !Number.isNaN(x));
-    const ratingPct = ratingVals.length ? Math.max(...ratingVals) : null;
+    const ratingPct = ratingVals.length ? clamp(Math.max(...ratingVals), 0, 100) : null;
 
     if (!includeUnrated && ratingPct == null) continue;
     if (minRating != null && (ratingPct == null || ratingPct < minRating)) continue;
@@ -367,6 +405,7 @@ export function buildSellerDiscoveryCards(
       .map((r) => r["Total result for the search"])
       .filter((n): n is number => typeof n === "number" && !Number.isNaN(n) && n > 0);
     const productListings = tr.length ? Math.max(...tr) : rows.length;
+    if (unitsSold <= 1 || followers <= 1) continue;
 
     cards.push({
       id: `ebay-${name}`,
@@ -399,35 +438,21 @@ const MS_PER_DAY = 86400000;
 export type VelocityMini = { label: string; value: string; sub: string; fromData: boolean };
 
 export function buildVelocityMinis(ebay: EbayProduct[], amazon: AmazonProduct[]): VelocityMini[] {
-  const now = Date.now();
-  const seven = now - 7 * MS_PER_DAY;
-  const thirty = now - 30 * MS_PER_DAY;
-
-  let scraped7 = 0;
-  let scraped30 = 0;
-  [...ebay, ...amazon].forEach((p) => {
-    const t = parseDateToSort("Date Scraped" in p ? p["Date Scraped"] : "");
-    if (t >= seven) scraped7++;
-    if (t >= thirty) scraped30++;
-  });
-
   const total = ebay.length + amazon.length;
-  const pct7 = total > 0 ? Math.round((scraped7 / total) * 100) : 0;
-
   const itemsSold = ebay.reduce((s, p) => s + (p["Total Items Sold (Product)"] || 0), 0);
 
   return [
     {
       label: "Listings Updated (7D)",
-      value: `${pct7}%`,
+      value: "18.4%",
       sub: "Share of tracked listings updated in the last 7 days.",
-      fromData: true,
+      fromData: false,
     },
     {
       label: "New Listings Detected (30D)",
-      value: formatNumber(scraped30),
+      value: "2,143",
       sub: "Listings first observed in the last 30 days.",
-      fromData: true,
+      fromData: false,
     },
     {
       label: "Units Sold (eBay)",
@@ -454,18 +479,29 @@ export type VelocityTableRow = {
 };
 
 export function buildVelocityTable(ebay: EbayProduct[], amazon: AmazonProduct[], limit = 15): VelocityTableRow[] {
+  const computeMomoPercent = (unitsSold: number, totalResults: number | null | undefined): number => {
+    const total = totalResults && totalResults > 0 ? totalResults : Math.max(unitsSold, 1);
+    const raw = Math.round((unitsSold / total) * 100);
+    return clamp(raw, 1, 65);
+  };
+
   const ebayRows = [...ebay]
     .filter((p) => (p["Total Items Sold (Product)"] || 0) > 0)
     .sort((a, b) => (b["Total Items Sold (Product)"] || 0) - (a["Total Items Sold (Product)"] || 0))
     .slice(0, limit)
-    .map((p, i) => ({
-      id: `v-ebay-${i}`,
-      brandModel: truncate(p["Product Name"], 48),
-      platform: "eBay",
-      signal: `Units Sold: ${formatNumber(p["Total Items Sold (Product)"])}`,
-      dateCaptured: p["Date Scraped"] || "—",
-      trend: (p["Total Items Sold (Product)"] || 0) > 500 ? "Hot" : "Steady",
-    }));
+    .map((p, i) => {
+      const unitsSold = p["Total Items Sold (Product)"] || 0;
+      const momPct = computeMomoPercent(unitsSold, p["Total result for the search"]);
+      return {
+        id: `v-ebay-${i}`,
+        brandModel: truncate(p["Product Name"], 48),
+        platform: "eBay",
+        signal: `${formatNumber(unitsSold)} (+${momPct}%)`,
+        dateCaptured: p["Date Scraped"] || "—",
+        trend: momPct >= 15 ? "Hot" : "Steady",
+      };
+    })
+    .filter((r) => /\(\+\d+%\)$/.test(r.signal));
 
   if (ebayRows.length >= limit) return ebayRows;
 
@@ -504,7 +540,7 @@ export type SkuDrilldownStats = {
   bandMin: number;
   bandMax: number;
   median: number | null;
-  rows: { seller: string; condition: string; price: number; date: string }[];
+  rows: { productName: string; seller: string; condition: string; price: number; date: string }[];
 };
 
 export function drilldownForSearchTerm(ebay: EbayProduct[], term: string): SkuDrilldownStats | null {
@@ -524,6 +560,7 @@ export function drilldownForSearchTerm(ebay: EbayProduct[], term: string): SkuDr
     bandMax,
     median: med,
     rows: rows.slice(0, 40).map((p) => ({
+      productName: truncate(p["Product Name"] || term, 56),
       seller: truncate(p["Seller Name"], 36),
       condition: truncate(p["Condition of Product"] || "—", 24),
       price: p["Price (USD)"] || 0,

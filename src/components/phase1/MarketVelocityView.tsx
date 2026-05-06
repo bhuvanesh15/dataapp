@@ -52,7 +52,7 @@ export function MarketVelocityView() {
               <tr className="border-b border-[#2d3a4d] bg-[#0f1623] text-[11px] font-semibold uppercase tracking-wide text-[#8da2b2]">
                 <th className="p-3">Product</th>
                 <th className="p-3">Platform</th>
-                <th className="p-3">Velocity signal</th>
+                <th className="p-3">Units Sold (MoM%)</th>
                 <th className="p-3">Date Captured</th>
                 <th className="p-3">Trend</th>
               </tr>

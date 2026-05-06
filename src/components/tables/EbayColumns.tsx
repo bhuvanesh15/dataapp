@@ -4,7 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { EbayProduct } from "@/types/ebay";
 import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice, formatNumber, formatPercent, truncate } from "@/lib/utils";
+import { formatPrice, formatNumber, formatPercentWhole, truncate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 function ReviewPercentCell({ value }: { value: number }) {
@@ -17,7 +17,7 @@ function ReviewPercentCell({ value }: { value: number }) {
       : p >= 95
         ? "text-amber-400"
         : "text-rose-400";
-  return <span className={cn("font-medium", colorClass)}>{formatPercent(p)}</span>;
+  return <span className={cn("font-medium", colorClass)}>{formatPercentWhole(p)}</span>;
 }
 
 export function getEbayColumns(): ColumnDef<EbayProduct, unknown>[] {
@@ -163,7 +163,11 @@ export function EbayDetailCard({ row }: { row: EbayProduct }) {
                 <ExternalLink className="ml-1 inline h-3 w-3" />
               </a>
             ) : typeof value === "number" ? (
-              key.includes("Price") ? formatPrice(value) : key.includes("%") ? formatPercent(value) : formatNumber(value)
+              key.includes("Price")
+                ? formatPrice(value)
+                : key.includes("%")
+                  ? formatPercentWhole(value)
+                  : formatNumber(value)
             ) : (
               String(value)
             )}
