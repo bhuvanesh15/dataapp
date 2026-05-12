@@ -46,6 +46,14 @@ export function formatPercentWhole(value: number | null | undefined): string {
   return `${Math.round(value)}%`;
 }
 
+/** Signed percent with one decimal (e.g. +4.0%, -12.3%). */
+export function formatSignedPercent1dp(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "N/A";
+  const v = Math.round(value * 10) / 10;
+  const sign = v > 0 ? "+" : v < 0 ? "" : "";
+  return `${sign}${v.toFixed(1)}%`;
+}
+
 /** Normalize and format date string. Handles YYYY-MM-DD (eBay), DD-MM-YYYY (Amazon), MM-DD-YYYY */
 export function formatDate(
   dateStr: string | null | undefined,

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useData } from "@/context/DataContext";
 import { benchmarkCategoryOptions, benchmarkConditionOptions, buildBenchmarkRows } from "@/lib/market-stats";
-import { formatPrice, formatPercentWhole, cn } from "@/lib/utils";
+import { formatPrice, formatSignedPercent1dp, cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -25,10 +25,7 @@ export function PriceBenchmarkView() {
     () => benchmarkCategoryOptions(ebayProducts, amazonProducts),
     [ebayProducts, amazonProducts]
   );
-  const conditions = useMemo(
-    () => benchmarkConditionOptions(ebayProducts, amazonProducts),
-    [ebayProducts, amazonProducts]
-  );
+  const conditions = useMemo(() => benchmarkConditionOptions(), []);
 
   const rows = useMemo(
     () =>
@@ -131,8 +128,7 @@ export function PriceBenchmarkView() {
                             "bg-amber-500/15 text-amber-400"
                         )}
                       >
-                        {r.vsMarketPct > 0 ? "+" : ""}
-                        {formatPercentWhole(r.vsMarketPct)}
+                        {formatSignedPercent1dp(r.vsMarketPct)}
                       </span>
                     )}
                   </td>
@@ -153,6 +149,11 @@ export function PriceBenchmarkView() {
               title: "Region",
               description:
                 "Region reflects available seller or listing location from monitored marketplace data.",
+            },
+            {
+              title: "VS median",
+              description:
+                "Each row is compared to the median price of its own model/search cohort (not the whole table). Values are capped to ±50% for readability.",
             },
           ]}
         />

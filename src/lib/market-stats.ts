@@ -195,6 +195,84 @@ function displayRegion(raw: string | undefined | null): string {
   return truncate(t, 28);
 }
 
+/** Collapse platform-specific text into a comparable key (spaces/dashes/case ignored). */
+export function normalizeCrossSkuKey(s: string | null | undefined): string {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "")
+    .trim();
+}
+
+/** Normalized condition taxonomy for benchmark + drilldown (per MI spec). */
+export const BENCHMARK_NORMALIZED_CONDITIONS = [
+  "New / Unworn",
+  "New without box",
+  "Very good / Like new",
+  "Good / Lightly used",
+  "Used / Visible wear",
+] as const;
+
+export type BenchmarkNormalizedCondition = (typeof BENCHMARK_NORMALIZED_CONDITIONS)[number];
+
+export function normalizeEbayConditionLabel(raw: string | null | undefined): BenchmarkNormalizedCondition {
+  const s = (raw || "").toLowerCase();
+  if (/几乎全新|轻微使用|明显使用|全新|未使用/.test(raw || "")) {
+    if (/明显|重度|严重/.test(raw || "")) return "Used / Visible wear";
+    if (/轻微/.test(raw || "")) return "Good / Lightly used";
+    return "Very good / Like new";
+  }
+  if (/new with tags|new w\/ tags|new with box|new w\/ box|new in box|unworn|^new\b|novo|neuf|neu\b|95-new|95新/.test(s))
+    return "New / Unworn";
+  if (/new without|new w\/o|without tags|sem caixa|sin caja|new w\/o box/.test(s)) return "New without box";
+  if (/like new|very good|excellent|excelente|pre-owned\s*-\s*excellent|pre-owned\s*-\s*excelente|mint|95/.test(s))
+    return "Very good / Like new";
+  if (/good|lightly|pre-owned\s*-\s*good|seminovo\s*-\s*good|fair/.test(s)) return "Good / Lightly used";
+  if (/used|pre-owned|preowned|worn|wear|poor|damaged|obvious|defect/.test(s)) return "Used / Visible wear";
+  return "Good / Lightly used";
+}
+
+export function normalizeAmazonConditionLabel(p: AmazonProduct): BenchmarkNormalizedCondition {
+  const name = (p["Product Name"] || "").toLowerCase();
+  if (/\b(brand new|factory sealed)\b/.test(name)) return "New / Unworn";
+  if (/\b(new)\b/.test(name) && !/\b(renewed|refurb|open[-\s]?box|used)\b/.test(name)) return "New / Unworn";
+  if (/\b(open[-\s]?box)\b/.test(name)) return "New without box";
+  if (/\b(renewed|refurbished|refurb)\b/.test(name)) return "Very good / Like new";
+  if (/\b(used|pre[-\s]?owned)\b/.test(name)) return "Used / Visible wear";
+  return "Very good / Like new";
+}
+
+function isLikelyCategoryFilterToken(text: string): boolean {
+  const t = text.trim();
+  if (t.length < 2 || t.length > 72) return false;
+  const words = t.split(/\s+/).filter(Boolean).length;
+  if (words > 12) return false;
+  if ((t.match(/,/g) || []).length >= 3) return false;
+  return true;
+}
+
+function categoriesMatchChoice(rowCategory: string, choice: string): boolean {
+  return rowCategory.trim().toLowerCase() === choice.trim().toLowerCase();
+}
+
+/** Peer group for benchmark VS median: same normalized search/model cohort (not global). */
+export function benchmarkRowPeerKey(platform: "eBay" | "Amazon", p: EbayProduct | AmazonProduct): string {
+  if (platform === "eBay") {
+    const e = p as EbayProduct;
+    const t = normalizeCrossSkuKey(e["Search Term"]);
+    if (t.length >= 3) return t;
+    return normalizeCrossSkuKey(e["Product Name"]);
+  }
+  const a = p as AmazonProduct;
+  const m = normalizeCrossSkuKey(a["Item model number"]);
+  if (m.length >= 4) return m;
+  const si = normalizeCrossSkuKey(a["Search input"]);
+  if (si.length >= 3) return si;
+  const asin = normalizeCrossSkuKey(a["ASIN"]);
+  return asin || "unknown";
+}
+
 function normalizeLikelyCentsShift(price: number, refMedian: number | null): number {
   if (!Number.isFinite(price) || price <= 0) return price;
   if (price < 10_000 || !Number.isInteger(price)) return price;
@@ -225,6 +303,8 @@ function filterExtremePriceOutliers<T extends { price: number }>(rows: T[]): T[]
   return kept.length >= Math.max(6, Math.floor(rows.length * 0.45)) ? kept : rows;
 }
 
+type BenchWork = Omit<BenchmarkRow, "vsMarketPct"> & { peerKey: string };
+
 export function buildBenchmarkRows(
   ebay: EbayProduct[],
   amazon: AmazonProduct[],
@@ -234,28 +314,28 @@ export function buildBenchmarkRows(
     condition?: string;
   }
 ): BenchmarkRow[] {
-  const cat = opts?.category?.toLowerCase();
+  const cat = opts?.category;
   const plat = opts?.platform ?? "all";
-  const condFilter = opts?.condition?.toLowerCase();
+  const condFilter = opts?.condition;
 
-  const baseRows: Omit<BenchmarkRow, "vsMarketPct">[] = [];
+  const work: BenchWork[] = [];
 
   if (plat !== "amazon") {
     for (const p of ebay) {
       const price = p["Price (USD)"];
       if (typeof price !== "number" || price <= 0) continue;
-      const term = p["Search Term"] || "";
-      const cond = (p["Condition of Product"] || "").trim();
-      if (condFilter && condFilter !== "all" && cond.toLowerCase() !== condFilter) continue;
-      if (cat && cat !== "all" && !term.toLowerCase().includes(cat) && !p["Product Name"].toLowerCase().includes(cat))
-        continue;
-      baseRows.push({
-        id: `ebay-${p["Product URL"]}-${baseRows.length}`,
+      const term = (p["Search Term"] || "").trim();
+      const condNorm = normalizeEbayConditionLabel(p["Condition of Product"]);
+      if (condFilter && condFilter !== "all" && condNorm !== condFilter) continue;
+      if (cat && cat !== "all" && !categoriesMatchChoice(term, cat)) continue;
+      work.push({
+        id: `ebay-${p["Product URL"]}-${work.length}`,
         brandModel: truncate(p["Product Name"], 56),
         platform: "eBay",
         region: displayRegion(p["Location of Product"]),
-        condition: truncate(p["Condition of Product"] || "—", 28),
+        condition: condNorm,
         price,
+        peerKey: benchmarkRowPeerKey("eBay", p),
       });
     }
   }
@@ -265,40 +345,62 @@ export function buildBenchmarkRows(
       const price = p["Price (USD)"];
       if (price == null || typeof price !== "number" || price <= 0) continue;
       const brand = p["Brand"] || "";
-      const search = p["Search input"] || "";
-      const dept = (p["Department"] || "").trim();
-      if (condFilter && condFilter !== "all" && dept.toLowerCase() !== condFilter) continue;
-      if (
-        cat &&
-        cat !== "all" &&
-        !brand.toLowerCase().includes(cat) &&
-        !search.toLowerCase().includes(cat) &&
-        !p["Product Name"].toLowerCase().includes(cat)
-      )
-        continue;
+      const search = (p["Search input"] || "").trim();
+      const condNorm = normalizeAmazonConditionLabel(p);
+      if (condFilter && condFilter !== "all" && condNorm !== condFilter) continue;
+      if (cat && cat !== "all" && !categoriesMatchChoice(search, cat)) continue;
       const tail = p["Business Address"]?.split(",").pop()?.trim();
-      baseRows.push({
-        id: `amz-${p["ASIN"]}-${baseRows.length}`,
+      const dept = (p["Department"] || "").trim();
+      work.push({
+        id: `amz-${p["ASIN"]}-${work.length}`,
         brandModel: truncate([brand, p["Product Name"]].filter(Boolean).join(" · ") || p["Product Name"], 56),
         platform: "Amazon",
         region: displayRegion(dept || tail),
-        condition: dept ? truncate(dept, 28) : "—",
+        condition: condNorm,
         price,
+        peerKey: benchmarkRowPeerKey("Amazon", p),
       });
     }
   }
 
-  const rawMedian = robustMarketMedian(baseRows.map((r) => r.price).filter((n) => n > 0));
-  const normalized = baseRows.map((r) => ({
+  const rawMedian = robustMarketMedian(work.map((r) => r.price).filter((n) => n > 0));
+  const normalized = work.map((r) => ({
     ...r,
     price: normalizeLikelyCentsShift(r.price, rawMedian),
   }));
-  const cleaned = filterExtremePriceOutliers(normalized);
-  const med = robustMarketMedian(cleaned.map((r) => r.price).filter((n) => n > 0));
-  const rows: BenchmarkRow[] = cleaned.map((r) => ({
-    ...r,
-    vsMarketPct: vsMedianPercent(r.price, med),
-  }));
+
+  const byPeer = new Map<string, BenchWork[]>();
+  normalized.forEach((r) => {
+    if (!byPeer.has(r.peerKey)) byPeer.set(r.peerKey, []);
+    byPeer.get(r.peerKey)!.push(r);
+  });
+
+  const cleanedParts: BenchWork[] = [];
+  for (const [, group] of Array.from(byPeer.entries())) {
+    cleanedParts.push(...filterExtremePriceOutliers(group));
+  }
+
+  const medByPeer = new Map<string, number | null>();
+  const peerKeys = Array.from(new Set(cleanedParts.map((r) => r.peerKey)));
+  peerKeys.forEach((k) => {
+    const prices = cleanedParts.filter((r) => r.peerKey === k).map((r) => r.price);
+    medByPeer.set(k, robustMarketMedian(prices));
+  });
+
+  const rows: BenchmarkRow[] = cleanedParts.map((r) => {
+    const med = medByPeer.get(r.peerKey) ?? null;
+    const rawPct = vsMedianPercent(r.price, med);
+    const pct = rawPct == null ? null : clamp(rawPct, -50, 50);
+    return {
+      id: r.id,
+      brandModel: r.brandModel,
+      platform: r.platform,
+      region: r.region,
+      condition: r.condition,
+      price: r.price,
+      vsMarketPct: pct,
+    };
+  });
 
   rows.sort((a, b) => b.price - a.price);
   return rows.slice(0, 80);
@@ -307,26 +409,18 @@ export function buildBenchmarkRows(
 export function benchmarkCategoryOptions(ebay: EbayProduct[], amazon: AmazonProduct[]): string[] {
   const set = new Set<string>();
   ebay.forEach((p) => {
-    if (p["Search Term"]?.trim()) set.add(p["Search Term"].trim());
+    const t = p["Search Term"]?.trim();
+    if (t && isLikelyCategoryFilterToken(t)) set.add(t);
   });
   amazon.forEach((p) => {
-    if (p["Search input"]?.trim()) set.add(p["Search input"].trim());
-    if (p["Brand"]?.trim()) set.add(p["Brand"].trim());
+    const t = p["Search input"]?.trim();
+    if (t && isLikelyCategoryFilterToken(t)) set.add(t);
   });
-  return Array.from(set).sort((a, b) => a.localeCompare(b)).slice(0, 40);
+  return Array.from(set).sort((a, b) => a.localeCompare(b)).slice(0, 50);
 }
 
-export function benchmarkConditionOptions(ebay: EbayProduct[], amazon: AmazonProduct[]): string[] {
-  const set = new Set<string>();
-  ebay.forEach((p) => {
-    const c = p["Condition of Product"]?.trim();
-    if (c) set.add(c);
-  });
-  amazon.forEach((p) => {
-    const c = p["Department"]?.trim();
-    if (c) set.add(c);
-  });
-  return Array.from(set).sort((a, b) => a.localeCompare(b)).slice(0, 30);
+export function benchmarkConditionOptions(): string[] {
+  return [...BENCHMARK_NORMALIZED_CONDITIONS];
 }
 
 /** Heuristic: listing location reads as United States. */
@@ -502,20 +596,185 @@ export function buildVelocityTable(ebay: EbayProduct[], amazon: AmazonProduct[],
       };
     })
     .filter((r) => /\(\+\d+%\)$/.test(r.signal));
+  return ebayRows;
+}
 
-  if (ebayRows.length >= limit) return ebayRows;
+export type SkuMasterOption = {
+  id: string;
+  canonicalKey: string;
+  displayLabel: string;
+  listingCount: number;
+};
 
-  const need = limit - ebayRows.length;
-  const amz = [...amazon].slice(0, need).map((p, i) => ({
-    id: `v-amz-${i}`,
-    brandModel: truncate(p["Product Name"], 48),
-    platform: "Amazon",
-    signal: p["Best Sellers Rank"] ? `BSR ${truncate(p["Best Sellers Rank"], 32)}` : "Listed",
-    dateCaptured: p["Date Scraped"] || "—",
-    trend: "Listed",
+export function buildSkuMasterOptions(ebay: EbayProduct[], amazon: AmazonProduct[]): SkuMasterOption[] {
+  const keys = new Set<string>();
+  ebay.forEach((p) => {
+    const k = normalizeCrossSkuKey(p["Search Term"]);
+    if (k.length >= 3) keys.add(k);
+  });
+  amazon.forEach((p) => {
+    const si = normalizeCrossSkuKey(p["Search input"]);
+    const mid = normalizeCrossSkuKey(p["Item model number"]);
+    if (si.length >= 3) keys.add(si);
+    else if (mid.length >= 4) keys.add(mid);
+  });
+
+  const opts: SkuMasterOption[] = [];
+  for (const key of Array.from(keys).sort((a, b) => a.localeCompare(b))) {
+    const eb = ebay.filter((p) => normalizeCrossSkuKey(p["Search Term"]) === key);
+    const amz = amazon.filter((p) => {
+      const si = normalizeCrossSkuKey(p["Search input"]);
+      const mid = normalizeCrossSkuKey(p["Item model number"]);
+      return (si.length >= 3 && si === key) || (mid.length >= 4 && mid === key);
+    });
+    const n = eb.length + amz.length;
+    if (n === 0) continue;
+
+    const title =
+      eb[0]?.["Search Term"]?.trim() ||
+      amz[0]?.["Search input"]?.trim() ||
+      eb[0]?.["Product Name"]?.trim() ||
+      amz[0]?.["Product Name"]?.trim() ||
+      key;
+    const ref =
+      amz.find((p) => (p["Item model number"] || "").trim())?.["Item model number"]?.trim() ||
+      key.slice(0, 10).toUpperCase();
+    const displayLabel = `${truncate(title, 44)} (Ref: ${ref})`;
+
+    opts.push({
+      id: `cross:${key}`,
+      canonicalKey: key,
+      displayLabel,
+      listingCount: n,
+    });
+  }
+
+  opts.sort((a, b) => a.displayLabel.localeCompare(b.displayLabel));
+  return opts;
+}
+
+export type SkuCrossPlatformRow = {
+  id: string;
+  productName: string;
+  platform: "eBay" | "Amazon";
+  seller: string;
+  condition: string;
+  price: number;
+  currency: string;
+  vsMedianPct: number | null;
+  lastDate: string;
+  sourceUrl: string;
+};
+
+export type SkuCrossPlatformStats = {
+  canonicalKey: string;
+  displayLabel: string;
+  count: number;
+  min: number;
+  max: number;
+  bandMin: number;
+  bandMax: number;
+  median: number | null;
+  rows: SkuCrossPlatformRow[];
+};
+
+export function buildSkuCrossPlatformDrilldown(
+  ebay: EbayProduct[],
+  amazon: AmazonProduct[],
+  canonicalKey: string
+): SkuCrossPlatformStats | null {
+  const key = normalizeCrossSkuKey(canonicalKey);
+  if (!key) return null;
+
+  const ebRows = ebay.filter((p) => normalizeCrossSkuKey(p["Search Term"]) === key);
+  const amzRows = amazon.filter((p) => {
+    const si = normalizeCrossSkuKey(p["Search input"]);
+    const mid = normalizeCrossSkuKey(p["Item model number"]);
+    return (si.length >= 3 && si === key) || (mid.length >= 4 && mid === key);
+  });
+
+  if (!ebRows.length && !amzRows.length) return null;
+
+  const draft: SkuCrossPlatformRow[] = [];
+
+  ebRows.forEach((p, i) => {
+    const price = p["Price (USD)"];
+    if (typeof price !== "number" || price <= 0) return;
+    draft.push({
+      id: `sku-ebay-${key}-${i}`,
+      productName: truncate(p["Product Name"], 72),
+      platform: "eBay",
+      seller: truncate(p["Seller Name"], 40),
+      condition: normalizeEbayConditionLabel(p["Condition of Product"]),
+      price,
+      currency: "USD",
+      vsMedianPct: null,
+      lastDate: p["Date Scraped"] || "—",
+      sourceUrl: p["Product URL"] || "",
+    });
+  });
+
+  amzRows.forEach((p, i) => {
+    const price = p["Price (USD)"];
+    if (price == null || typeof price !== "number" || price <= 0) return;
+    draft.push({
+      id: `sku-amz-${key}-${i}`,
+      productName: truncate(p["Product Name"], 72),
+      platform: "Amazon",
+      seller: truncate(p["Seller"], 40),
+      condition: normalizeAmazonConditionLabel(p),
+      price,
+      currency: "USD",
+      vsMedianPct: null,
+      lastDate: p["Date Scraped"] || "—",
+      sourceUrl: (p["product url"] as string) || "",
+    });
+  });
+
+  const rawMed = robustMarketMedian(draft.map((r) => r.price));
+  const priced = draft.map((r) => ({
+    ...r,
+    price: normalizeLikelyCentsShift(r.price, rawMed),
   }));
 
-  return [...ebayRows, ...amz];
+  const prices = priced.map((r) => r.price).filter((n) => n > 0);
+  const med = median(prices);
+  const min = prices.length ? Math.min(...prices) : 0;
+  const max = prices.length ? Math.max(...prices) : 0;
+  const { bandMin, bandMax } = drilldownDisplayPriceBand(prices);
+  const groupMed = robustMarketMedian(prices);
+
+  const rows = priced
+    .map((r) => {
+      const rawPct = vsMedianPercent(r.price, groupMed);
+      const pct = rawPct == null ? null : clamp(rawPct, -50, 50);
+      return { ...r, vsMedianPct: pct };
+    })
+    .sort((a, b) => b.price - a.price)
+    .slice(0, 200);
+
+  const title =
+    ebRows[0]?.["Search Term"]?.trim() ||
+    amzRows[0]?.["Search input"]?.trim() ||
+    ebRows[0]?.["Product Name"]?.trim() ||
+    amzRows[0]?.["Product Name"]?.trim() ||
+    key;
+  const ref =
+    amzRows.find((p) => (p["Item model number"] || "").trim())?.["Item model number"]?.trim() ||
+    key.slice(0, 10).toUpperCase();
+  const displayLabel = `${truncate(title, 44)} (Ref: ${ref})`;
+
+  return {
+    canonicalKey: key,
+    displayLabel,
+    count: rows.length,
+    min,
+    max,
+    bandMin,
+    bandMax,
+    median: med,
+    rows,
+  };
 }
 
 export function ebaySearchTermsByVolume(ebay: EbayProduct[]): { term: string; count: number }[] {
@@ -528,43 +787,4 @@ export function ebaySearchTermsByVolume(ebay: EbayProduct[]): { term: string; co
     .sort((a, b) => b[1] - a[1])
     .slice(0, 25)
     .map(([term, count]) => ({ term, count }));
-}
-
-export type SkuDrilldownStats = {
-  term: string;
-  count: number;
-  /** True min/max of all listing prices in the query (can include junk). */
-  min: number;
-  max: number;
-  /** Typical band for the headline range (percentile-based, outlier-resistant). */
-  bandMin: number;
-  bandMax: number;
-  median: number | null;
-  rows: { productName: string; seller: string; condition: string; price: number; date: string }[];
-};
-
-export function drilldownForSearchTerm(ebay: EbayProduct[], term: string): SkuDrilldownStats | null {
-  const rows = ebay.filter((p) => (p["Search Term"] || "").trim() === term.trim());
-  if (!rows.length) return null;
-  const prices = rows.map((p) => p["Price (USD)"]).filter((n) => typeof n === "number" && n > 0);
-  const med = median(prices);
-  const min = prices.length ? Math.min(...prices) : 0;
-  const max = prices.length ? Math.max(...prices) : 0;
-  const { bandMin, bandMax } = drilldownDisplayPriceBand(prices);
-  return {
-    term,
-    count: rows.length,
-    min,
-    max,
-    bandMin,
-    bandMax,
-    median: med,
-    rows: rows.slice(0, 40).map((p) => ({
-      productName: truncate(p["Product Name"] || term, 56),
-      seller: truncate(p["Seller Name"], 36),
-      condition: truncate(p["Condition of Product"] || "—", 24),
-      price: p["Price (USD)"] || 0,
-      date: p["Date Scraped"] || "—",
-    })),
-  };
 }
