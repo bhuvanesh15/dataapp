@@ -3,14 +3,16 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-const SelectContext = React.createContext<{
+type SelectContextValue = {
   value: string;
   onValueChange: (v: string) => void;
   open: boolean;
   setOpen: (v: boolean) => void;
   labels: Record<string, string>;
   registerLabel: (value: string, label: string) => void;
-} | null>(null);
+};
+
+const SelectContext = React.createContext<SelectContextValue | null>(null);
 
 export function Select({
   value,
@@ -25,16 +27,34 @@ export function Select({
   const [internalValue, setInternalValue] = React.useState("");
   const [labels, setLabels] = React.useState<Record<string, string>>({});
   const val = value ?? internalValue;
-  const handleChange = (v: string) => {
-    if (value === undefined) setInternalValue(v);
-    onValueChange(v);
-    setOpen(false);
-  };
+
+  const handleChange = React.useCallback(
+    (v: string) => {
+      if (value === undefined) setInternalValue(v);
+      onValueChange(v);
+      setOpen(false);
+    },
+    [onValueChange, value]
+  );
+
   const registerLabel = React.useCallback((optionValue: string, label: string) => {
     setLabels((prev) => (prev[optionValue] === label ? prev : { ...prev, [optionValue]: label }));
   }, []);
+
+  const contextValue = React.useMemo<SelectContextValue>(
+    () => ({
+      value: val,
+      onValueChange: handleChange,
+      open,
+      setOpen,
+      labels,
+      registerLabel,
+    }),
+    [val, handleChange, open, labels, registerLabel]
+  );
+
   return (
-    <SelectContext.Provider value={{ value: val, onValueChange: handleChange, open, setOpen, labels, registerLabel }}>
+    <SelectContext.Provider value={contextValue}>
       <div className="relative">{children}</div>
     </SelectContext.Provider>
   );
@@ -74,38 +94,42 @@ const SelectValue = ({ placeholder }: { placeholder?: string }) => {
   return <span>{ctx.labels[ctx.value] || placeholder}</span>;
 };
 
-const SelectContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, children, ...props }, ref) => {
-  const ctx = React.useContext(SelectContext);
-  const divRef = React.useRef<HTMLDivElement>(null);
-  React.useEffect(() => {
-    if (!ctx?.open) return;
-    const handleClick = (e: MouseEvent) => {
-      if (divRef.current && !divRef.current.contains(e.target as Node)) ctx.setOpen(false);
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [ctx?.open]);
-  if (!ctx?.open) return null;
-  return (
-    <div
-      ref={(r) => {
-        (divRef as React.MutableRefObject<HTMLDivElement | null>).current = r;
-        if (typeof ref === "function") ref(r);
-        else if (ref) ref.current = r;
-      }}
-      className={cn(
-        "absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-white/10 bg-black/90 p-1 text-white shadow-xl backdrop-blur-xl",
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-});
+const SelectContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, children, ...props }, ref) => {
+    const ctx = React.useContext(SelectContext);
+    const divRef = React.useRef<HTMLDivElement | null>(null);
+
+    React.useEffect(() => {
+      if (!ctx?.open) return;
+      const handleClick = (e: MouseEvent) => {
+        if (divRef.current && !divRef.current.contains(e.target as Node)) {
+          ctx.setOpen(false);
+        }
+      };
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }, [ctx?.open, ctx?.setOpen]);
+
+    if (!ctx?.open) return null;
+
+    return (
+      <div
+        ref={(r) => {
+          divRef.current = r;
+          if (typeof ref === "function") ref(r);
+          else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = r;
+        }}
+        className={cn(
+          "absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-white/10 bg-black/90 p-1 text-white shadow-xl backdrop-blur-xl",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  }
+);
 SelectContent.displayName = "SelectContent";
 
 const SelectItem = ({
@@ -117,6 +141,7 @@ const SelectItem = ({
 }: React.HTMLAttributes<HTMLDivElement> & { value: string; textValue?: string }) => {
   const ctx = React.useContext(SelectContext);
   if (!ctx) return null;
+
   const label = React.useMemo(() => {
     if (textValue?.trim()) return textValue.trim();
     if (typeof children === "string") return children;
@@ -129,9 +154,10 @@ const SelectItem = ({
     return value;
   }, [children, textValue, value]);
 
+  const { registerLabel } = ctx;
   React.useEffect(() => {
-    if (label) ctx.registerLabel(value, label);
-  }, [ctx, label, value]);
+    if (label) registerLabel(value, label);
+  }, [registerLabel, label, value]);
 
   return (
     <div
@@ -144,7 +170,9 @@ const SelectItem = ({
       onClick={() => ctx.onValueChange(value)}
       {...props}
     >
-      {ctx.value === value && <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center text-cyan-400">✓</span>}
+      {ctx.value === value && (
+        <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center text-cyan-400">✓</span>
+      )}
       {children}
     </div>
   );

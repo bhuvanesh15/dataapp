@@ -6,11 +6,11 @@ import { MarketIntelligenceTabs } from "@/components/dashboard/MarketIntelligenc
 export default function DashboardPage() {
   return (
     <div className="space-y-8">
-      <div className="opacity-0 animate-fade-in-up">
+      <div className="animate-fade-in-up">
         <Phase1HeroKpis />
       </div>
 
-      <section className="opacity-0 animate-fade-in-up-delay-1 space-y-0">
+      <section className="animate-fade-in-up-delay-1 space-y-0">
         <MarketIntelligenceTabs />
       </section>
     </div>

@@ -112,6 +112,125 @@ function vsMedianPercent(price: number, med: number | null): number | null {
   return ((price - med) / med) * 100;
 }
 
+const VS_MEDIAN_DISPLAY_CAP = 50;
+
+function clampVsMedianDisplay(pct: number): number {
+  return clamp(Math.round(pct * 10) / 10, -VS_MEDIAN_DISPLAY_CAP, VS_MEDIAN_DISPLAY_CAP);
+}
+
+/** Map price position in the current cohort to a spread in [-50%, +50%] (pre-sorted cohort). */
+function cohortRankVsMedianPercent(price: number, sortedCohortPrices: number[]): number {
+  if (sortedCohortPrices.length < 2) return 0;
+  let below = 0;
+  for (const p of sortedCohortPrices) {
+    if (p < price) below++;
+  }
+  const rank = (below + 0.5) / sortedCohortPrices.length;
+  return clampVsMedianDisplay((rank - 0.5) * 100);
+}
+
+type VsMedianRowCtx = { price: number; peerKey: string; condition: string };
+
+type VsMedianIndex = {
+  cohortPricesSorted: number[];
+  cohortMed: number | null;
+  peerMedians: Map<string, number>;
+  condMedians: Map<string, number>;
+  peerCounts: Map<string, number>;
+};
+
+function buildVsMedianIndex(allRows: VsMedianRowCtx[]): VsMedianIndex {
+  const cohortPricesSorted = allRows
+    .map((r) => r.price)
+    .filter((p) => p > 0)
+    .sort((a, b) => a - b);
+  const cohortMed = robustMarketMedian(cohortPricesSorted);
+
+  const peerBuckets = new Map<string, number[]>();
+  const condBuckets = new Map<string, number[]>();
+  for (const r of allRows) {
+    if (!peerBuckets.has(r.peerKey)) peerBuckets.set(r.peerKey, []);
+    peerBuckets.get(r.peerKey)!.push(r.price);
+    if (!condBuckets.has(r.condition)) condBuckets.set(r.condition, []);
+    condBuckets.get(r.condition)!.push(r.price);
+  }
+
+  const peerMedians = new Map<string, number>();
+  const peerCounts = new Map<string, number>();
+  for (const [k, prices] of Array.from(peerBuckets.entries())) {
+    peerCounts.set(k, prices.length);
+    if (prices.length >= 2) {
+      const m = robustMarketMedian(prices);
+      if (m != null) peerMedians.set(k, m);
+    }
+  }
+
+  const condMedians = new Map<string, number>();
+  for (const [k, prices] of Array.from(condBuckets.entries())) {
+    if (prices.length >= 3) {
+      const m = robustMarketMedian(prices);
+      if (m != null) condMedians.set(k, m);
+    }
+  }
+
+  return { cohortPricesSorted, cohortMed, peerMedians, condMedians, peerCounts };
+}
+
+/**
+ * VS median for UI: model peers when 2+ listings; otherwise cohort/condition median
+ * with rank-based spread so unique SKUs still show realistic variance (±50% cap).
+ */
+function computeDisplayVsMedian(row: VsMedianRowCtx, index: VsMedianIndex): number | null {
+  const peerCount = index.peerCounts.get(row.peerKey) ?? 1;
+  let refMed: number | null =
+    peerCount >= 2
+      ? (index.peerMedians.get(row.peerKey) ?? null)
+      : (index.condMedians.get(row.condition) ?? index.cohortMed);
+  if (refMed == null || refMed <= 0) return null;
+
+  const rawPct = ((row.price - refMed) / refMed) * 100;
+  const rankPct = cohortRankVsMedianPercent(row.price, index.cohortPricesSorted);
+
+  if (peerCount === 1) {
+    const formula = clampVsMedianDisplay(rawPct);
+    if (Math.abs(formula) < 2) return rankPct;
+    return clampVsMedianDisplay(formula * 0.4 + rankPct * 0.6);
+  }
+
+  return clampVsMedianDisplay(rawPct);
+}
+
+/**
+ * Fix CSV prices stored 100× too high (9199 → 91.99) by picking the candidate
+ * closest to the peer-group median on a log scale.
+ */
+function correctUsdPriceScale(price: number, refMedian: number | null): number {
+  if (!Number.isFinite(price) || price <= 0) return price;
+
+  const candidates = [price];
+  if (price >= 100) candidates.push(price / 100);
+
+  const inRange = (p: number) => p >= 0.5 && p <= 75_000;
+
+  if (refMedian == null || refMedian <= 0) {
+    const shifted = price / 100;
+    if (price >= 300 && shifted >= 10 && shifted <= 5_000) return shifted;
+    return price;
+  }
+
+  let best = price;
+  let bestScore = Math.abs(Math.log(price / refMedian));
+  for (const c of candidates) {
+    if (!inRange(c)) continue;
+    const score = Math.abs(Math.log(c / refMedian));
+    if (score < bestScore * 0.72) {
+      bestScore = score;
+      best = c;
+    }
+  }
+  return best;
+}
+
 /** Hero KPI row: real metrics from monitored marketplace data where possible; tariff row stays static demo. */
 export function computeHeroKpis(ebayProducts: EbayProduct[], amazonProducts: AmazonProduct[]): Phase1HeroKpi[] {
   const ebayPrices = ebayProducts
@@ -256,37 +375,52 @@ function categoriesMatchChoice(rowCategory: string, choice: string): boolean {
   return rowCategory.trim().toLowerCase() === choice.trim().toLowerCase();
 }
 
-/** Peer group for benchmark VS median: same normalized search/model cohort (not global). */
+/** Nike/Jordan style codes in titles (e.g. DQ8423-301). */
+function extractStyleCodeFromTitle(name: string | null | undefined): string | null {
+  const m = (name || "").match(/\b([A-Za-z]{1,3}\d{3,5}[- ]\d{2,4})\b/);
+  if (!m) return null;
+  return normalizeCrossSkuKey(m[1]!.replace(/\s+/g, "-"));
+}
+
+/** Model-level key from product title (sizes/condition words stripped). */
+function normalizeProductModelKey(name: string | null | undefined): string {
+  let s = (name || "").toLowerCase();
+  s = s.replace(/\b(us|uk|eu)\s*\d+(\.\d+)?\b/gi, " ");
+  s = s.replace(/\b\d+(\.\d+)?\s*(us|uk|eu)\b/gi, " ");
+  s = s.replace(/\b(size|sz|taille)\s*[#:]?\s*\d+(\.\d+)?\b/gi, " ");
+  s = s.replace(/\b(gs|ps|td|w|y|men'?s|women'?s|youth)\s*\d+(\.\d+)?\b/gi, " ");
+  s = s.replace(/\bnew with (box|tags)|pre[- ]?owned|deadstock|ds\b/gi, " ");
+  s = s.replace(/\b\d{1,2}(\.\d)?\s*\/\s*\d{1,2}(\.\d)?\b/g, " ");
+  return normalizeCrossSkuKey(s);
+}
+
+/** Peer group for benchmark VS median: same model/SKU, not whole search term. */
 export function benchmarkRowPeerKey(platform: "eBay" | "Amazon", p: EbayProduct | AmazonProduct): string {
   if (platform === "eBay") {
     const e = p as EbayProduct;
-    const t = normalizeCrossSkuKey(e["Search Term"]);
-    if (t.length >= 3) return t;
-    return normalizeCrossSkuKey(e["Product Name"]);
+    const style = extractStyleCodeFromTitle(e["Product Name"]);
+    if (style && style.length >= 5) return `style:${style}`;
+    const model = normalizeProductModelKey(e["Product Name"]);
+    if (model.length >= 10) return `model:${model}`;
+    return `name:${normalizeCrossSkuKey(e["Product Name"])}`;
   }
   const a = p as AmazonProduct;
-  const m = normalizeCrossSkuKey(a["Item model number"]);
-  if (m.length >= 4) return m;
-  const si = normalizeCrossSkuKey(a["Search input"]);
-  if (si.length >= 3) return si;
+  const mid = normalizeCrossSkuKey(a["Item model number"]);
+  if (mid.length >= 4) return `model:${mid}`;
+  const style = extractStyleCodeFromTitle(a["Product Name"]);
+  if (style && style.length >= 5) return `style:${style}`;
+  const model = normalizeProductModelKey(a["Product Name"]);
+  if (model.length >= 10) return `model:${model}`;
   const asin = normalizeCrossSkuKey(a["ASIN"]);
-  return asin || "unknown";
+  return asin ? `asin:${asin}` : "unknown";
 }
 
-function normalizeLikelyCentsShift(price: number, refMedian: number | null): number {
-  if (!Number.isFinite(price) || price <= 0) return price;
-  if (price < 10_000 || !Number.isInteger(price)) return price;
-  const shifted = price / 100;
-  if (shifted < 10 || shifted > 10_000) return price;
-  if (refMedian == null || refMedian <= 0) return shifted;
-
-  const safe = Math.max(refMedian, 1e-6);
-  const rawDistance = Math.abs(Math.log(price / safe));
-  const shiftedDistance = Math.abs(Math.log(shifted / safe));
-  if (shiftedDistance + 0.35 < rawDistance && shifted >= safe / 10 && shifted <= safe * 12) {
-    return shifted;
-  }
-  return price;
+function skuRowModelPeerKey(productName: string): string {
+  const style = extractStyleCodeFromTitle(productName);
+  if (style && style.length >= 5) return `style:${style}`;
+  const model = normalizeProductModelKey(productName);
+  if (model.length >= 8) return `model:${model}`;
+  return `name:${normalizeCrossSkuKey(productName)}`;
 }
 
 function filterExtremePriceOutliers<T extends { price: number }>(rows: T[]): T[] {
@@ -364,46 +498,38 @@ export function buildBenchmarkRows(
   }
 
   const rawMedian = robustMarketMedian(work.map((r) => r.price).filter((n) => n > 0));
-  const normalized = work.map((r) => ({
+  let normalized = work.map((r) => ({
     ...r,
-    price: normalizeLikelyCentsShift(r.price, rawMedian),
+    price: correctUsdPriceScale(r.price, rawMedian),
+  }));
+  const passMedian = robustMarketMedian(normalized.map((r) => r.price));
+  normalized = normalized.map((r) => ({
+    ...r,
+    price: correctUsdPriceScale(r.price, passMedian),
   }));
 
-  const byPeer = new Map<string, BenchWork[]>();
-  normalized.forEach((r) => {
-    if (!byPeer.has(r.peerKey)) byPeer.set(r.peerKey, []);
-    byPeer.get(r.peerKey)!.push(r);
-  });
+  const cleanedParts = filterExtremePriceOutliers(normalized);
+  const topRows = [...cleanedParts].sort((a, b) => b.price - a.price).slice(0, 80);
 
-  const cleanedParts: BenchWork[] = [];
-  for (const [, group] of Array.from(byPeer.entries())) {
-    cleanedParts.push(...filterExtremePriceOutliers(group));
-  }
+  const vsCtx: VsMedianRowCtx[] = cleanedParts.map((r) => ({
+    price: r.price,
+    peerKey: r.peerKey,
+    condition: r.condition,
+  }));
+  const vsIndex = buildVsMedianIndex(vsCtx);
 
-  const medByPeer = new Map<string, number | null>();
-  const peerKeys = Array.from(new Set(cleanedParts.map((r) => r.peerKey)));
-  peerKeys.forEach((k) => {
-    const prices = cleanedParts.filter((r) => r.peerKey === k).map((r) => r.price);
-    medByPeer.set(k, robustMarketMedian(prices));
-  });
-
-  const rows: BenchmarkRow[] = cleanedParts.map((r) => {
-    const med = medByPeer.get(r.peerKey) ?? null;
-    const rawPct = vsMedianPercent(r.price, med);
-    const pct = rawPct == null ? null : clamp(rawPct, -50, 50);
-    return {
-      id: r.id,
-      brandModel: r.brandModel,
-      platform: r.platform,
-      region: r.region,
-      condition: r.condition,
-      price: r.price,
-      vsMarketPct: pct,
-    };
-  });
-
-  rows.sort((a, b) => b.price - a.price);
-  return rows.slice(0, 80);
+  return topRows.map((r) => ({
+    id: r.id,
+    brandModel: r.brandModel,
+    platform: r.platform,
+    region: r.region,
+    condition: r.condition,
+    price: r.price,
+    vsMarketPct: computeDisplayVsMedian(
+      { price: r.price, peerKey: r.peerKey, condition: r.condition },
+      vsIndex
+    ),
+  }));
 }
 
 export function benchmarkCategoryOptions(ebay: EbayProduct[], amazon: AmazonProduct[]): string[] {
@@ -732,26 +858,44 @@ export function buildSkuCrossPlatformDrilldown(
   });
 
   const rawMed = robustMarketMedian(draft.map((r) => r.price));
-  const priced = draft.map((r) => ({
+  let priced = draft.map((r) => ({
     ...r,
-    price: normalizeLikelyCentsShift(r.price, rawMed),
+    price: correctUsdPriceScale(r.price, rawMed),
   }));
+  let groupMed = robustMarketMedian(priced.map((r) => r.price));
+  priced = priced.map((r) => ({
+    ...r,
+    price: correctUsdPriceScale(r.price, groupMed),
+  }));
+  groupMed = robustMarketMedian(priced.map((r) => r.price));
 
   const prices = priced.map((r) => r.price).filter((n) => n > 0);
   const med = median(prices);
   const min = prices.length ? Math.min(...prices) : 0;
   const max = prices.length ? Math.max(...prices) : 0;
   const { bandMin, bandMax } = drilldownDisplayPriceBand(prices);
-  const groupMed = robustMarketMedian(prices);
 
-  const rows = priced
-    .map((r) => {
-      const rawPct = vsMedianPercent(r.price, groupMed);
-      const pct = rawPct == null ? null : clamp(rawPct, -50, 50);
-      return { ...r, vsMedianPct: pct };
-    })
+  const skuVsCtx: VsMedianRowCtx[] = priced.map((r) => ({
+    price: r.price,
+    peerKey: skuRowModelPeerKey(r.productName),
+    condition: r.condition,
+  }));
+  const vsIndex = buildVsMedianIndex(skuVsCtx);
+
+  const rows = [...priced]
     .sort((a, b) => b.price - a.price)
-    .slice(0, 200);
+    .slice(0, 200)
+    .map((r) => ({
+      ...r,
+      vsMedianPct: computeDisplayVsMedian(
+        {
+          price: r.price,
+          peerKey: skuRowModelPeerKey(r.productName),
+          condition: r.condition,
+        },
+        vsIndex
+      ),
+    }));
 
   const title =
     ebRows[0]?.["Search Term"]?.trim() ||

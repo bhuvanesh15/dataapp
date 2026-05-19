@@ -153,7 +153,7 @@ export function PriceBenchmarkView() {
             {
               title: "VS median",
               description:
-                "Each row is compared to the median price of its own model/search cohort (not the whole table). Values are capped to ±50% for readability.",
+                "Compared to the median for the same model when multiple listings exist; otherwise vs the active category cohort. Display is capped at ±50% per market-intelligence guidelines.",
             },
           ]}
         />
