@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useData } from "@/context/DataContext";
 import { buildVelocityMinis, buildVelocityTable } from "@/lib/market-stats";
-import { titleCaseDisplay, formatPlatformLabel } from "@/lib/utils";
+import { titleCaseDisplay, formatPlatformLabel, formatDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Phase1Insights } from "./Phase1Insights";
@@ -76,7 +76,7 @@ export function MarketVelocityView() {
                     <td className="p-3 text-[#8da2b2]">{formatPlatformLabel(r.platform)}</td>
                     <td className="p-3 text-[#8da2b2]">{titleCaseDisplay(r.location)}</td>
                     <td className="p-3 text-[#cbd5e1]">{r.signal}</td>
-                    <td className="p-3 text-[#64748b]">{r.dateCaptured}</td>
+                    <td className="p-3 text-[#64748b]">{formatDate(r.dateCaptured, "ebay")}</td>
                     <td className="p-3">
                       <span
                         className={
