@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useData } from "@/context/DataContext";
 import { buildSellerDiscoveryCards } from "@/lib/market-stats";
-import { formatNumber, formatPercentWhole } from "@/lib/utils";
+import { formatNumber, formatPercentWhole, titleCaseDisplay } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -16,7 +16,7 @@ import {
 
 export function SellerDiscoveryView() {
   const { ebayProducts, amazonProducts, loading } = useData();
-  const [regionScope, setRegionScope] = useState<"non_us" | "all">("non_us");
+  const [locationScope, setLocationScope] = useState<"non_us" | "all">("non_us");
   const [minRating, setMinRating] = useState<string>("all");
 
   const minRatingPct = minRating === "all" ? null : minRating === "95" ? 95 : minRating === "90" ? 90 : null;
@@ -24,12 +24,12 @@ export function SellerDiscoveryView() {
   const sellers = useMemo(
     () =>
       buildSellerDiscoveryCards(ebayProducts, amazonProducts, {
-        onlyNonUS: regionScope === "non_us",
+        onlyNonUS: locationScope === "non_us",
         minRatingPct,
         includeUnrated: minRating === "all",
         limit: 24,
       }),
-    [ebayProducts, amazonProducts, regionScope, minRating, minRatingPct]
+    [ebayProducts, amazonProducts, locationScope, minRating, minRatingPct]
   );
 
   if (loading) {
@@ -47,13 +47,13 @@ export function SellerDiscoveryView() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Select value={regionScope} onValueChange={(v) => setRegionScope(v as typeof regionScope)}>
+            <Select value={locationScope} onValueChange={(v) => setLocationScope(v as typeof locationScope)}>
               <SelectTrigger className="w-[200px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
-                <SelectValue placeholder="Region" />
+                <SelectValue placeholder="Location" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="non_us">Outside US</SelectItem>
-                <SelectItem value="all">All Regions</SelectItem>
+                <SelectItem value="all">All Locations</SelectItem>
               </SelectContent>
             </Select>
             <Select value={minRating} onValueChange={setMinRating}>
@@ -71,7 +71,7 @@ export function SellerDiscoveryView() {
         <CardContent className="space-y-3">
           {sellers.length === 0 ? (
             <p className="text-[#8da2b2]">
-              No sellers match these filters. Try &quot;All Regions&quot; or a lower minimum rating.
+              No sellers match these filters. Try &quot;All Locations&quot; or a lower minimum rating.
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -94,7 +94,7 @@ export function SellerDiscoveryView() {
                       className="border-b border-[#2d3a4d]/80 transition-colors hover:bg-[#0f1623]/80"
                     >
                       <td className="p-3 text-white">{s.name}</td>
-                      <td className="p-3 text-[#8da2b2]">{s.location}</td>
+                      <td className="p-3 text-[#8da2b2]">{titleCaseDisplay(s.location)}</td>
                       <td className="p-3 text-[#cbd5e1]">{formatNumber(s.itemsSold)}</td>
                       <td className="p-3 text-[#cbd5e1]">{formatNumber(s.productListings)}</td>
                       <td className="p-3 text-[#cbd5e1]">{formatNumber(s.reviews)}</td>

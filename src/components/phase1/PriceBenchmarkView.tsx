@@ -1,163 +1,283 @@
 "use client";
 
+
+
 import { useMemo, useState } from "react";
+
 import { useData } from "@/context/DataContext";
-import { benchmarkCategoryOptions, benchmarkConditionOptions, buildBenchmarkRows } from "@/lib/market-stats";
-import { formatPrice, formatSignedPercent1dp, cn } from "@/lib/utils";
+
+import { formatPrice, formatNumber, titleCaseDisplay, formatPlatformLabel } from "@/lib/utils";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Skeleton } from "@/components/ui/skeleton";
+
 import {
+
   Select,
+
   SelectContent,
+
   SelectItem,
+
   SelectTrigger,
+
   SelectValue,
+
 } from "@/components/ui/select";
+
 import { Phase1Insights } from "./Phase1Insights";
 
+
+
+const DEMO_CATEGORIES = ["Sneakers"] as const;
+
+const DEMO_BRANDS = ["Nike", "Jordan"] as const;
+
+
+
 export function PriceBenchmarkView() {
-  const { ebayProducts, amazonProducts, loading } = useData();
+
+  const { priceBenchmarkRows, loading } = useData();
+
   const [category, setCategory] = useState<string>("all");
+
+  const [brand, setBrand] = useState<string>("all");
+
   const [platform, setPlatform] = useState<"all" | "ebay" | "amazon">("all");
-  const [condition, setCondition] = useState<string>("all");
 
-  const categories = useMemo(
-    () => benchmarkCategoryOptions(ebayProducts, amazonProducts),
-    [ebayProducts, amazonProducts]
-  );
-  const conditions = useMemo(() => benchmarkConditionOptions(), []);
 
-  const rows = useMemo(
-    () =>
-      buildBenchmarkRows(ebayProducts, amazonProducts, {
-        category: category === "all" ? undefined : category,
-        platform,
-        condition: condition === "all" ? undefined : condition,
-      }),
-    [ebayProducts, amazonProducts, category, platform, condition]
-  );
+
+  const rows = useMemo(() => {
+
+    return priceBenchmarkRows.filter((r) => {
+
+      if (category !== "all" && r.normalized_category !== category) return false;
+
+      if (brand !== "all" && r.normalized_Brand !== brand) return false;
+
+      if (platform !== "all" && r.platform !== platform) return false;
+
+      return true;
+
+    });
+
+  }, [priceBenchmarkRows, category, brand, platform]);
+
+
 
   if (loading) {
+
     return <Skeleton className="h-[480px] w-full rounded-xl border border-[#2d3a4d] bg-[#121a26]/50" />;
+
   }
 
+
+
   return (
+
     <Card className="border-[#2d3a4d] bg-[#121a26]/50">
+
       <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
         <CardTitle className="text-white">Price Benchmark Analysis</CardTitle>
+
         <div className="flex flex-wrap gap-2">
+
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-[200px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c.length > 36 ? `${c.slice(0, 36)}…` : c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={platform} onValueChange={(v) => setPlatform(v as typeof platform)}>
-            <SelectTrigger className="w-[160px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
-              <SelectValue placeholder="Platform" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Platforms</SelectItem>
-              <SelectItem value="ebay">eBay</SelectItem>
-              <SelectItem value="amazon">Amazon</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={condition} onValueChange={setCondition}>
+
             <SelectTrigger className="w-[180px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
-              <SelectValue placeholder="Condition" />
+
+              <SelectValue placeholder="Category" />
+
             </SelectTrigger>
+
             <SelectContent>
-              <SelectItem value="all">All Conditions</SelectItem>
-              {conditions.map((c) => (
+
+              <SelectItem value="all">All Categories</SelectItem>
+
+              {DEMO_CATEGORIES.map((c) => (
+
                 <SelectItem key={c} value={c}>
-                  {c.length > 34 ? `${c.slice(0, 34)}…` : c}
+
+                  {titleCaseDisplay(c)}
+
                 </SelectItem>
+
               ))}
+
             </SelectContent>
+
           </Select>
+
+          <Select value={brand} onValueChange={setBrand}>
+
+            <SelectTrigger className="w-[160px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
+
+              <SelectValue placeholder="Brand" />
+
+            </SelectTrigger>
+
+            <SelectContent>
+
+              <SelectItem value="all">All Brands</SelectItem>
+
+              {DEMO_BRANDS.map((b) => (
+
+                <SelectItem key={b} value={b}>
+
+                  {b}
+
+                </SelectItem>
+
+              ))}
+
+            </SelectContent>
+
+          </Select>
+
+          <Select value={platform} onValueChange={(v) => setPlatform(v as typeof platform)}>
+
+            <SelectTrigger className="w-[160px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
+
+              <SelectValue placeholder="Platform" />
+
+            </SelectTrigger>
+
+            <SelectContent>
+
+              <SelectItem value="all">All Platforms</SelectItem>
+
+              <SelectItem value="ebay">eBay</SelectItem>
+
+              <SelectItem value="amazon">Amazon</SelectItem>
+
+            </SelectContent>
+
+          </Select>
+
         </div>
+
       </CardHeader>
+
       <CardContent className="space-y-4 overflow-x-auto">
-        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+
+        <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+
           <thead>
+
             <tr className="border-b border-[#2d3a4d] bg-[#0f1623] text-[11px] font-semibold uppercase tracking-wide text-[#8da2b2]">
-              <th className="p-3">Brand / model</th>
+
+              <th className="p-3">Product Name</th>
+
               <th className="p-3">Platform</th>
-              <th className="p-3">Region</th>
-              <th className="p-3">Condition</th>
-              <th className="p-3">Price (USD)</th>
-              <th className="p-3">vs median</th>
+
+              <th className="p-3">SKU</th>
+
+              <th className="p-3">Listings</th>
+
+              <th className="p-3">Median Price (USD)</th>
+
+              <th className="p-3">Avg Price (USD)</th>
+
             </tr>
+
           </thead>
+
           <tbody>
+
             {rows.length === 0 ? (
+
               <tr>
+
                 <td colSpan={6} className="p-8 text-center text-[#8da2b2]">
+
                   No rows match filters. Try a different filter.
+
                 </td>
+
               </tr>
+
             ) : (
-              rows.map((r) => (
+
+              rows.map((r, i) => (
+
                 <tr
-                  key={r.id}
+
+                  key={`${r.normalized_sku}-${r.platform}-${i}`}
+
                   className="border-b border-[#2d3a4d]/80 transition-colors hover:bg-[#0f1623]/80"
+
                 >
-                  <td className="p-3 text-white">{r.brandModel}</td>
-                  <td className="p-3 text-[#cbd5e1]">{r.platform}</td>
-                  <td className="p-3 text-[#8da2b2]">{r.region}</td>
-                  <td className="p-3 text-[#8da2b2]">{r.condition}</td>
-                  <td className="p-3 font-medium tabular-nums text-white">{formatPrice(r.price)}</td>
-                  <td className="p-3">
-                    {r.vsMarketPct == null ? (
-                      "—"
-                    ) : (
-                      <span
-                        className={cn(
-                          "inline-block rounded px-2 py-0.5 text-xs font-semibold",
-                          r.vsMarketPct > 10 && "bg-emerald-500/15 text-emerald-400",
-                          r.vsMarketPct < -10 && "bg-rose-500/15 text-rose-400",
-                          r.vsMarketPct >= -10 &&
-                            r.vsMarketPct <= 10 &&
-                            "bg-amber-500/15 text-amber-400"
-                        )}
-                      >
-                        {formatSignedPercent1dp(r.vsMarketPct)}
-                      </span>
-                    )}
-                  </td>
+
+                  <td className="p-3 text-white">{titleCaseDisplay(r.product_family)}</td>
+
+                  <td className="p-3 text-[#cbd5e1]">{formatPlatformLabel(r.platform)}</td>
+
+                  <td className="p-3 font-mono text-xs text-[#8da2b2]">{r.normalized_sku}</td>
+
+                  <td className="p-3 tabular-nums text-[#cbd5e1]">{formatNumber(r.listing_count)}</td>
+
+                  <td className="p-3 font-medium tabular-nums text-white">{formatPrice(r.median_price)}</td>
+
+                  <td className="p-3 tabular-nums text-[#cbd5e1]">{formatPrice(r.avg_price)}</td>
+
                 </tr>
+
               ))
+
             )}
+
           </tbody>
+
         </table>
 
+
+
         <Phase1Insights
+
           items={[
+
             {
+
+              title: "Data source",
+
+              description:
+
+                "Rows are loaded directly from the validated price_benchmark_v2 export (Amazon and eBay). No frontend subsetting or rebuild.",
+
+            },
+
+            {
+
+              title: "Brand filter",
+
+              description:
+
+                "Brand values are limited to Nike and Jordan per the mapped workbook (Air Jordan consolidated to Jordan).",
+
+            },
+
+            {
+
               title: "Pricing note",
+
               description:
-                "Prices reflect ask and listing prices from monitored marketplace records. Not adjusted for shipping or duties.",
+
+                "Median and average prices reflect the validated export fields median_price and avg_price per SKU and platform.",
+
             },
-            {
-              title: "Region",
-              description:
-                "Region reflects available seller or listing location from monitored marketplace data.",
-            },
-            {
-              title: "VS median",
-              description:
-                "Compared to the median for the same model when multiple listings exist; otherwise vs the active category cohort. Display is capped at ±50% per market-intelligence guidelines.",
-            },
+
           ]}
+
         />
+
       </CardContent>
+
     </Card>
+
   );
+
 }
+
+

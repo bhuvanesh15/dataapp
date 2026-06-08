@@ -54,6 +54,22 @@ export function formatSignedPercent1dp(value: number | null | undefined): string
   return `${sign}${v.toFixed(1)}%`;
 }
 
+/** Capitalize Each Word for demo display (Category, Product Name, Location, Condition). */
+export function titleCaseDisplay(value: string | null | undefined): string {
+  if (!value?.trim()) return "—";
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\b[\w']+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1));
+}
+
+export function formatPlatformLabel(platform: string | null | undefined): string {
+  const s = (platform ?? "").trim().toLowerCase();
+  if (s === "ebay") return "eBay";
+  if (s === "amazon") return "Amazon";
+  return titleCaseDisplay(platform);
+}
+
 /** Normalize and format date string. Handles YYYY-MM-DD (eBay), DD-MM-YYYY (Amazon), MM-DD-YYYY */
 export function formatDate(
   dateStr: string | null | undefined,

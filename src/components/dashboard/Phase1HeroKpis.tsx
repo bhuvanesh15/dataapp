@@ -73,7 +73,7 @@ export function Phase1HeroKpis() {
                     trendColor
                   )}
                 >
-                  <TrendIcon trend={kpi.trend} />
+                  {kpi.trend !== "neutral" && <TrendIcon trend={kpi.trend} />}
                   {kpi.trendLabel}
                 </span>
               </div>

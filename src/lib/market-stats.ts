@@ -9,6 +9,7 @@ import {
   parseDateToSort,
   truncate,
   clamp,
+  titleCaseDisplay,
 } from "@/lib/utils";
 
 function median(nums: number[]): number | null {
@@ -591,6 +592,7 @@ export function buildSellerDiscoveryCards(
   const minRating = opts?.minRatingPct ?? null;
   const includeUnrated = opts?.includeUnrated ?? false;
   const limit = opts?.limit ?? 24;
+  const datasetHasFollowers = ebay.some((p) => (p["Seller Followers"] || 0) > 0);
 
   const bySeller = new Map<string, EbayProduct[]>();
   ebay.forEach((p) => {
@@ -625,7 +627,8 @@ export function buildSellerDiscoveryCards(
       .map((r) => r["Total result for the search"])
       .filter((n): n is number => typeof n === "number" && !Number.isNaN(n) && n > 0);
     const productListings = tr.length ? Math.max(...tr) : rows.length;
-    if (unitsSold <= 1 || followers <= 1) continue;
+    if (unitsSold <= 1) continue;
+    if (datasetHasFollowers && followers <= 1) continue;
 
     cards.push({
       id: `ebay-${name}`,
@@ -633,7 +636,7 @@ export function buildSellerDiscoveryCards(
       source: "eBay",
       ratingPct,
       ratingStars: null,
-      location: truncate(loc || "—", 48),
+      location: truncate(titleCaseDisplay(loc === "—" ? "" : loc), 48),
       itemsSold: unitsSold,
       reviews,
       followers,
@@ -693,6 +696,7 @@ export type VelocityTableRow = {
   id: string;
   brandModel: string;
   platform: string;
+  location: string;
   signal: string;
   dateCaptured: string;
   trend: string;
@@ -716,6 +720,7 @@ export function buildVelocityTable(ebay: EbayProduct[], amazon: AmazonProduct[],
         id: `v-ebay-${i}`,
         brandModel: truncate(p["Product Name"], 48),
         platform: "eBay",
+        location: truncate(p["Location of Product"] || "", 48),
         signal: `${formatNumber(unitsSold)} (+${momPct}%)`,
         dateCaptured: p["Date Scraped"] || "—",
         trend: momPct >= 15 ? "Hot" : "Steady",

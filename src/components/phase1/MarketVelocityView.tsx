@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useData } from "@/context/DataContext";
 import { buildVelocityMinis, buildVelocityTable } from "@/lib/market-stats";
+import { titleCaseDisplay, formatPlatformLabel } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Phase1Insights } from "./Phase1Insights";
@@ -50,8 +51,9 @@ export function MarketVelocityView() {
           <table className="w-full min-w-[560px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-[#2d3a4d] bg-[#0f1623] text-[11px] font-semibold uppercase tracking-wide text-[#8da2b2]">
-                <th className="p-3">Product</th>
+                <th className="p-3">Product Name</th>
                 <th className="p-3">Platform</th>
+                <th className="p-3">Location</th>
                 <th className="p-3">Units Sold (MoM%)</th>
                 <th className="p-3">Date Captured</th>
                 <th className="p-3">Trend</th>
@@ -60,7 +62,7 @@ export function MarketVelocityView() {
             <tbody>
               {table.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-[#8da2b2]">
+                  <td colSpan={6} className="p-8 text-center text-[#8da2b2]">
                     No velocity rows yet.
                   </td>
                 </tr>
@@ -70,8 +72,9 @@ export function MarketVelocityView() {
                     key={r.id}
                     className="border-b border-[#2d3a4d]/80 hover:bg-[#0f1623]/80"
                   >
-                    <td className="p-3 text-white">{r.brandModel}</td>
-                    <td className="p-3 text-[#8da2b2]">{r.platform}</td>
+                    <td className="p-3 text-white">{titleCaseDisplay(r.brandModel)}</td>
+                    <td className="p-3 text-[#8da2b2]">{formatPlatformLabel(r.platform)}</td>
+                    <td className="p-3 text-[#8da2b2]">{titleCaseDisplay(r.location)}</td>
                     <td className="p-3 text-[#cbd5e1]">{r.signal}</td>
                     <td className="p-3 text-[#64748b]">{r.dateCaptured}</td>
                     <td className="p-3">
