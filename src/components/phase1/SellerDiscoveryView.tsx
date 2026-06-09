@@ -21,7 +21,7 @@ export function SellerDiscoveryView() {
 
   const minRatingPct = minRating === "all" ? null : minRating === "95" ? 95 : minRating === "90" ? 90 : null;
 
-  const sellers = useMemo(
+  const discovery = useMemo(
     () =>
       buildSellerDiscoveryCards(ebayProducts, amazonProducts, {
         onlyNonUS: locationScope === "non_us",
@@ -31,6 +31,8 @@ export function SellerDiscoveryView() {
       }),
     [ebayProducts, amazonProducts, locationScope, minRating, minRatingPct]
   );
+
+  const { rows: sellers, totalMatching, hasFollowerData } = discovery;
 
   if (loading) {
     return <Skeleton className="h-[520px] w-full rounded-xl border border-[#2d3a4d] bg-[#121a26]/50" />;
@@ -44,6 +46,12 @@ export function SellerDiscoveryView() {
             <CardTitle className="text-white">Alternative Seller Discovery</CardTitle>
             <p className="mt-1 text-sm text-[#8da2b2]">
               eBay sellers aggregated from monitored product rows. Default view highlights non-US locations.
+              {sellers.length > 0 && (
+                <span className="mt-1 block text-xs text-[#64748b]">
+                  Showing {sellers.length} of {formatNumber(totalMatching)} matching sellers
+                  {minRating !== "all" ? ` (min ${minRating}% positive)` : ""}.
+                </span>
+              )}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -83,7 +91,7 @@ export function SellerDiscoveryView() {
                     <th className="p-3">Units Sold</th>
                     <th className="p-3">Product Listings</th>
                     <th className="p-3">Reviews</th>
-                    <th className="p-3">Followers</th>
+                    {hasFollowerData ? <th className="p-3">Followers</th> : null}
                     <th className="p-3">Positive %</th>
                   </tr>
                 </thead>
@@ -98,7 +106,9 @@ export function SellerDiscoveryView() {
                       <td className="p-3 text-[#cbd5e1]">{formatNumber(s.itemsSold)}</td>
                       <td className="p-3 text-[#cbd5e1]">{formatNumber(s.productListings)}</td>
                       <td className="p-3 text-[#cbd5e1]">{formatNumber(s.reviews)}</td>
-                      <td className="p-3 text-[#cbd5e1]">{formatNumber(s.followers)}</td>
+                      {hasFollowerData ? (
+                        <td className="p-3 text-[#cbd5e1]">{formatNumber(s.followers)}</td>
+                      ) : null}
                       <td className="p-3">
                         {s.ratingPct == null ? (
                           <span className="text-[#64748b]">—</span>

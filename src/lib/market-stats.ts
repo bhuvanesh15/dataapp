@@ -578,6 +578,12 @@ export type SellerCardRow = {
   listingRowCount: number;
 };
 
+export type SellerDiscoveryResult = {
+  rows: SellerCardRow[];
+  totalMatching: number;
+  hasFollowerData: boolean;
+};
+
 export function buildSellerDiscoveryCards(
   ebay: EbayProduct[],
   _amazon: AmazonProduct[],
@@ -587,7 +593,7 @@ export function buildSellerDiscoveryCards(
     limit?: number;
     includeUnrated?: boolean;
   }
-): SellerCardRow[] {
+): SellerDiscoveryResult {
   const onlyNonUS = opts?.onlyNonUS ?? true;
   const minRating = opts?.minRatingPct ?? null;
   const includeUnrated = opts?.includeUnrated ?? false;
@@ -653,7 +659,11 @@ export function buildSellerDiscoveryCards(
     return b.itemsSold - a.itemsSold;
   });
 
-  return cards.slice(0, limit);
+  return {
+    rows: cards.slice(0, limit),
+    totalMatching: cards.length,
+    hasFollowerData: datasetHasFollowers,
+  };
 }
 
 const MS_PER_DAY = 86400000;
