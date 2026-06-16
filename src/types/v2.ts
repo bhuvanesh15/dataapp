@@ -10,6 +10,7 @@ export type PriceBenchmarkV2Row = {
   median_price: number;
   avg_price: number;
   demo_priority_score: number;
+  canonical_product_name: string;
 };
 
 export type SkuIndexV2Row = {

@@ -26,10 +26,6 @@ import {
 
 } from "@/components/ui/select";
 
-import { Phase1Insights } from "./Phase1Insights";
-
-
-
 const DEMO_CATEGORIES = ["Sneakers"] as const;
 
 const DEMO_BRANDS = ["Nike", "Jordan"] as const;
@@ -210,7 +206,7 @@ export function PriceBenchmarkView() {
 
                 >
 
-                  <td className="p-3 text-white">{titleCaseDisplay(r.product_family)}</td>
+                  <td className="p-3 text-white">{titleCaseDisplay(r.canonical_product_name)}</td>
 
                   <td className="p-3 text-[#cbd5e1]">{formatPlatformLabel(r.platform)}</td>
 
@@ -231,47 +227,6 @@ export function PriceBenchmarkView() {
           </tbody>
 
         </table>
-
-
-
-        <Phase1Insights
-
-          items={[
-
-            {
-
-              title: "Data source",
-
-              description:
-
-                "Rows are loaded directly from the validated price_benchmark_v2 export (Amazon and eBay). No frontend subsetting or rebuild.",
-
-            },
-
-            {
-
-              title: "Brand filter",
-
-              description:
-
-                "Brand values are limited to Nike and Jordan per the mapped workbook (Air Jordan consolidated to Jordan).",
-
-            },
-
-            {
-
-              title: "Pricing note",
-
-              description:
-
-                "Median and average prices reflect the validated export fields median_price and avg_price per SKU and platform.",
-
-            },
-
-          ]}
-
-        />
-
       </CardContent>
 
     </Card>

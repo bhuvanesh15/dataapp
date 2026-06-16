@@ -1,38 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { useData } from "@/context/DataContext";
-import { buildSellerDiscoveryCards } from "@/lib/market-stats";
-import { formatNumber, formatPercentWhole, titleCaseDisplay } from "@/lib/utils";
+import { formatNumber, formatPositivePct, titleCaseDisplay } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export function SellerDiscoveryView() {
-  const { ebayProducts, amazonProducts, loading } = useData();
-  const [locationScope, setLocationScope] = useState<"non_us" | "all">("non_us");
-  const [minRating, setMinRating] = useState<string>("all");
-
-  const minRatingPct = minRating === "all" ? null : minRating === "95" ? 95 : minRating === "90" ? 90 : null;
-
-  const discovery = useMemo(
-    () =>
-      buildSellerDiscoveryCards(ebayProducts, amazonProducts, {
-        onlyNonUS: locationScope === "non_us",
-        minRatingPct,
-        includeUnrated: minRating === "all",
-        limit: 24,
-      }),
-    [ebayProducts, amazonProducts, locationScope, minRating, minRatingPct]
-  );
-
-  const { rows: sellers, totalMatching, hasFollowerData } = discovery;
+  const { sellerDiscoveryRows, loading } = useData();
 
   if (loading) {
     return <Skeleton className="h-[520px] w-full rounded-xl border border-[#2d3a4d] bg-[#121a26]/50" />;
@@ -41,49 +15,20 @@ export function SellerDiscoveryView() {
   return (
     <div className="space-y-4">
       <Card className="border-[#2d3a4d] bg-[#121a26]/50">
-        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <CardHeader>
           <div>
-            <CardTitle className="text-white">Alternative Seller Discovery</CardTitle>
+            <CardTitle className="text-white">Seller Discovery</CardTitle>
             <p className="mt-1 text-sm text-[#8da2b2]">
-              eBay sellers aggregated from monitored product rows. Default view highlights non-US locations.
-              {sellers.length > 0 && (
-                <span className="mt-1 block text-xs text-[#64748b]">
-                  Showing {sellers.length} of {formatNumber(totalMatching)} matching sellers
-                  {minRating !== "all" ? ` (min ${minRating}% positive)` : ""}.
-                </span>
-              )}
+              Top eBay sellers by units sold, reviews, and positive feedback from monitored sneaker listings.
             </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Select value={locationScope} onValueChange={(v) => setLocationScope(v as typeof locationScope)}>
-              <SelectTrigger className="w-[200px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
-                <SelectValue placeholder="Location" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="non_us">Outside US</SelectItem>
-                <SelectItem value="all">All Locations</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={minRating} onValueChange={setMinRating}>
-              <SelectTrigger className="w-[180px] border-[#2d3a4d] bg-[#0f1623] text-sm text-white">
-                <SelectValue placeholder="Rating" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Ratings</SelectItem>
-                <SelectItem value="95">Min Rating: 95%+</SelectItem>
-                <SelectItem value="90">Min Rating: 90%+</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          {sellers.length === 0 ? (
-            <p className="text-[#8da2b2]">
-              No sellers match these filters. Try &quot;All Locations&quot; or a lower minimum rating.
-            </p>
+          {sellerDiscoveryRows.length === 0 ? (
+            <p className="text-[#8da2b2]">No seller data loaded.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+              <table className="w-full min-w-[720px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-[#2d3a4d] bg-[#0f1623] text-[11px] font-semibold uppercase tracking-wide text-[#8da2b2]">
                     <th className="p-3">Seller</th>
@@ -91,32 +36,24 @@ export function SellerDiscoveryView() {
                     <th className="p-3">Units Sold</th>
                     <th className="p-3">Product Listings</th>
                     <th className="p-3">Reviews</th>
-                    {hasFollowerData ? <th className="p-3">Followers</th> : null}
                     <th className="p-3">Positive %</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sellers.map((s) => (
+                  {sellerDiscoveryRows.map((s) => (
                     <tr
-                      key={s.id}
+                      key={s.seller}
                       className="border-b border-[#2d3a4d]/80 transition-colors hover:bg-[#0f1623]/80"
                     >
-                      <td className="p-3 text-white">{s.name}</td>
+                      <td className="p-3 text-white">{s.seller}</td>
                       <td className="p-3 text-[#8da2b2]">{titleCaseDisplay(s.location)}</td>
-                      <td className="p-3 text-[#cbd5e1]">{formatNumber(s.itemsSold)}</td>
-                      <td className="p-3 text-[#cbd5e1]">{formatNumber(s.productListings)}</td>
+                      <td className="p-3 text-[#cbd5e1]">{formatNumber(s.units_sold)}</td>
+                      <td className="p-3 text-[#cbd5e1]">{formatNumber(s.product_listings)}</td>
                       <td className="p-3 text-[#cbd5e1]">{formatNumber(s.reviews)}</td>
-                      {hasFollowerData ? (
-                        <td className="p-3 text-[#cbd5e1]">{formatNumber(s.followers)}</td>
-                      ) : null}
                       <td className="p-3">
-                        {s.ratingPct == null ? (
-                          <span className="text-[#64748b]">—</span>
-                        ) : (
-                          <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400">
-                            {formatPercentWhole(s.ratingPct)}
-                          </span>
-                        )}
+                        <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400">
+                          {formatPositivePct(s.positive_pct)}
+                        </span>
                       </td>
                     </tr>
                   ))}

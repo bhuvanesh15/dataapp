@@ -4,12 +4,14 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import type { EbayProduct } from "@/types/ebay";
 import type { AmazonProduct } from "@/types/amazon";
 import type { PriceBenchmarkV2Row, SkuIndexV2Row } from "@/types/v2";
+import type { SellerDiscoveryV3Row } from "@/types/seller-discovery-v3";
 import { parseCSVFromURL } from "@/lib/csv-parse";
 import {
   mapPriceBenchmarkV2,
   mapSkuIndexV2,
   mapRowsToEbayV2,
   mapRowsToAmazonV2,
+  mapSellerDiscoveryV3,
 } from "@/lib/v2-csv-parse";
 
 type DataContextValue = {
@@ -17,6 +19,7 @@ type DataContextValue = {
   amazonProducts: AmazonProduct[];
   priceBenchmarkRows: PriceBenchmarkV2Row[];
   skuIndexRows: SkuIndexV2Row[];
+  sellerDiscoveryRows: SellerDiscoveryV3Row[];
   loading: boolean;
   loadError: string | null;
   lastRefresh: Date | null;
@@ -35,6 +38,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [amazonProducts, setAmazonProducts] = useState<AmazonProduct[]>([]);
   const [priceBenchmarkRows, setPriceBenchmarkRows] = useState<PriceBenchmarkV2Row[]>([]);
   const [skuIndexRows, setSkuIndexRows] = useState<SkuIndexV2Row[]>([]);
+  const [sellerDiscoveryRows, setSellerDiscoveryRows] = useState<SellerDiscoveryV3Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -43,15 +47,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     setLoadError(null);
     try {
-      const [ebayRes, amazonRes, benchmarkRes, skuRes] = await Promise.all([
-        parseCSVFromURL("/data/ebay_clean_v2.csv").catch((e) => {
-          console.warn("eBay v2 CSV load failed:", e);
-          return { data: [] as Record<string, unknown>[], meta: {} };
-        }),
-        parseCSVFromURL("/data/amazon_clean_v2.csv").catch((e) => {
-          console.warn("Amazon v2 CSV load failed:", e);
-          return { data: [] as Record<string, unknown>[], meta: {} };
-        }),
+      const [benchmarkRes, skuRes, sellerRes] = await Promise.all([
         parseCSVFromURL("/data/price_benchmark_v2.csv").catch((e) => {
           console.warn("Price benchmark v2 CSV load failed:", e);
           return { data: [] as Record<string, unknown>[], meta: {} };
@@ -60,12 +56,30 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           console.warn("SKU index v2 CSV load failed:", e);
           return { data: [] as Record<string, unknown>[], meta: {} };
         }),
+        parseCSVFromURL("/data/seller_discovery_v3.csv").catch((e) => {
+          console.warn("Seller discovery v3 CSV load failed:", e);
+          return { data: [] as Record<string, unknown>[], meta: {} };
+        }),
+      ]);
+
+      setPriceBenchmarkRows(mapPriceBenchmarkV2(benchmarkRes.data));
+      setSkuIndexRows(mapSkuIndexV2(skuRes.data));
+      setSellerDiscoveryRows(mapSellerDiscoveryV3(sellerRes.data));
+      setLoading(false);
+
+      const [ebayRes, amazonRes] = await Promise.all([
+        parseCSVFromURL("/data/ebay_clean_v2.csv").catch((e) => {
+          console.warn("eBay v2 CSV load failed:", e);
+          return { data: [] as Record<string, unknown>[], meta: {} };
+        }),
+        parseCSVFromURL("/data/amazon_clean_v2.csv").catch((e) => {
+          console.warn("Amazon v2 CSV load failed:", e);
+          return { data: [] as Record<string, unknown>[], meta: {} };
+        }),
       ]);
 
       setEbayProducts(mapRowsToEbayV2(ebayRes.data));
       setAmazonProducts(mapRowsToAmazonV2(amazonRes.data));
-      setPriceBenchmarkRows(mapPriceBenchmarkV2(benchmarkRes.data));
-      setSkuIndexRows(mapSkuIndexV2(skuRes.data));
       setLastRefresh(new Date());
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Failed to load data");
@@ -73,7 +87,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setAmazonProducts([]);
       setPriceBenchmarkRows([]);
       setSkuIndexRows([]);
-    } finally {
+      setSellerDiscoveryRows([]);
       setLoading(false);
     }
   }, []);
@@ -97,6 +111,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setAmazonProducts([]);
     setPriceBenchmarkRows([]);
     setSkuIndexRows([]);
+    setSellerDiscoveryRows([]);
     setLastRefresh(new Date());
   }, []);
 
@@ -105,6 +120,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     amazonProducts,
     priceBenchmarkRows,
     skuIndexRows,
+    sellerDiscoveryRows,
     loading,
     loadError,
     lastRefresh,

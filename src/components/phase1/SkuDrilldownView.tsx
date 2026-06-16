@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Phase1Insights } from "./Phase1Insights";
 import type { SkuIndexV2Row } from "@/types/v2";
 
 const DEMO_CATEGORIES = ["Sneakers"] as const;
@@ -319,26 +318,6 @@ export function SkuDrilldownView() {
                 </tbody>
               </table>
             </div>
-
-            <Phase1Insights
-              items={[
-                {
-                  title: "Data source",
-                  description:
-                    "All rows come from sku_index_v2.csv as exported from the mapped workbook. Listings are not rebuilt or subset in code beyond UI filters.",
-                },
-                {
-                  title: "SKU selection",
-                  description:
-                    "SKUs use normalized_sku from the export. Picker order follows demo_priority_score; table order follows platform_rank within each platform.",
-                },
-                {
-                  title: "Cross-platform coverage",
-                  description:
-                    "Validated export mix is Amazon 39 and eBay 69 listings. Platform filter preserves both marketplaces when set to All Platforms.",
-                },
-              ]}
-            />
           </>
         ) : null}
       </CardContent>

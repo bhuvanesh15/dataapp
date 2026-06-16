@@ -1,6 +1,7 @@
 import type { EbayProduct } from "@/types/ebay";
 import type { AmazonProduct } from "@/types/amazon";
 import type { PriceBenchmarkV2Row, SkuIndexV2Row } from "@/types/v2";
+import type { SellerDiscoveryV3Row } from "@/types/seller-discovery-v3";
 
 function toStr(v: unknown): string {
   if (v == null) return "";
@@ -67,6 +68,18 @@ export function mapPriceBenchmarkV2(rows: Record<string, unknown>[]): PriceBench
     median_price: toNum(row["median_price"]),
     avg_price: toNum(row["avg_price"]),
     demo_priority_score: toNum(row["demo_priority_score"]),
+    canonical_product_name: toStr(row["canonical_product_name"] || row["product_family"]),
+  }));
+}
+
+export function mapSellerDiscoveryV3(rows: Record<string, unknown>[]): SellerDiscoveryV3Row[] {
+  return rows.map((row) => ({
+    seller: toStr(row["seller"]),
+    location: toStr(row["location"]),
+    units_sold: toNum(row["units_sold"]),
+    product_listings: toNum(row["product_listings"]),
+    reviews: toNum(row["reviews"]),
+    positive_pct: toNum(row["positive_pct"]),
   }));
 }
 

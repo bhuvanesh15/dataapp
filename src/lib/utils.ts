@@ -41,6 +41,15 @@ export function formatPercent(value: number | null | undefined): string {
   return `${value.toFixed(1)}%`;
 }
 
+/** Workbook positive fraction (0.998) or whole percent → display percent string. */
+export function formatPositivePct(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "—";
+  const pct = value > 0 && value <= 1 ? value * 100 : value;
+  const rounded = Math.round(pct * 10) / 10;
+  if (rounded >= 99.95) return "100%";
+  return `${rounded % 1 === 0 ? Math.round(rounded) : rounded.toFixed(1)}%`;
+}
+
 export function formatPercentWhole(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "N/A";
   return `${Math.round(value)}%`;

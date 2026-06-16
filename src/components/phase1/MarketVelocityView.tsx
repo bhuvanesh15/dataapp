@@ -6,7 +6,6 @@ import { buildVelocityMinis, buildVelocityTable } from "@/lib/market-stats";
 import { titleCaseDisplay, formatPlatformLabel, formatDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Phase1Insights } from "./Phase1Insights";
 
 export function MarketVelocityView() {
   const { ebayProducts, amazonProducts, loading } = useData();
@@ -94,21 +93,6 @@ export function MarketVelocityView() {
             </tbody>
           </table>
         </div>
-
-        <Phase1Insights
-          items={[
-            {
-              title: "Current coverage",
-              description:
-                "Captured-date recency and eBay units-sold fields support velocity signals on this dataset.",
-            },
-            {
-              title: "Price momentum",
-              description:
-                "Multi-period tracking becomes more precise as additional historical snapshots accumulate.",
-            },
-          ]}
-        />
       </CardContent>
     </Card>
   );
